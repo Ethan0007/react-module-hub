@@ -1,0 +1,28 @@
+{
+  "name": "react-hub",
+  "version": "0.0.1",
+  "description": "A simple framework for modular react project",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rhaldkhein/react-hub.git"
+  },
+  "author": "RhaldKhein",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rhaldkhein/react-hub/issues"
+  },
+  "homepage": "https://github.com/rhaldkhein/react-hub#readme",
+  "dependencies": {
+    "lodash.get": "^4.4.2",
+    "lodash.reduce": "^4.6.0",
+    "react": "^16.8.6",
+    "redux": "^4.0.1"
+  },
+  "files": [
+    "index.js"
+  ]
+}
