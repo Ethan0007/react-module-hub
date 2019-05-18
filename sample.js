@@ -4,7 +4,7 @@ let hub = new Hub();
 
 class ModuleA {
   ready() {
-    const mB = hub.getModule("moduleb");
+    const mB = hub.getModule("w-t-f");
     console.log("A", mB.getName());
   }
   getName() {
@@ -24,7 +24,7 @@ class ModuleB {
   }
 }
 
-hub.addSingletonModule(ModuleB);
+hub.addSingletonModule(ModuleB, "w-t-f");
 hub.addSingletonModule(ModuleA);
 
 hub.start(ins => {
@@ -36,6 +36,8 @@ hub.start(ins => {
       }
     }
   });
-  setTimeout(() => ins.ready(), 100);
+  setTimeout(() => {
+    ins.ready();
+    console.log(ins._getModules(["w-t-f"]));
+  }, 100);
 });
-

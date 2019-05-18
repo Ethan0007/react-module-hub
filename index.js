@@ -110,7 +110,7 @@ class ReactModuleHub {
     }
   }
 
-  _getModules(...names) {
+  _getModules(names) {
     return _reduce(names, (o, k) => {
       o[k] = this.getModule(k);
       return o;
