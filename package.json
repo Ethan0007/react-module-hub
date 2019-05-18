@@ -24,5 +24,12 @@
   },
   "files": [
     "index.js"
+  ],
+  "devDependencies": {},
+  "keywords": [
+    "react",
+    "framework",
+    "modular",
+    "hub"
   ]
 }
