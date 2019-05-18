@@ -1,5 +1,5 @@
 {
-  "name": "react-hub",
+  "name": "react-module-hub",
   "version": "0.0.1",
   "description": "A simple framework for modular react project",
   "main": "index.js",

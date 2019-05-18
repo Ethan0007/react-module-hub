@@ -2,14 +2,14 @@ const React = require("react");
 const { combineReducers } = require("redux");
 const _get = require("lodash.get");
 const _reduce = require("lodash.reduce");
-const HubContext = React.createContext({});
+const ModuleHubContext = React.createContext({});
 
 let store;
 let modules = {};
 let instances = {};
 let config = {};
 
-class ReactHub {
+class ReactModuleHub {
 
   start(setup) {
     let comp = setup(this);
@@ -119,24 +119,19 @@ class ReactHub {
 
 }
 
-ReactHub.HubContext = HubContext;
+ReactModuleHub.ModuleHubContext = ModuleHubContext;
 
-ReactHub.withHubProps = function (ChildComponent, ...modules) {
+ReactModuleHub.withModules = function (ChildComponent, ...modules) {
   return class extends React.Component {
     render() {
-      return React.createElement(HubContext.Consumer, null, hub => {
+      return React.createElement(ModuleHubContext.Consumer, null, hub => {
         return React.createElement(ChildComponent, {
           hub,
           ...hub._getModules(modules)
         });
       });
-      // return (
-      //   <HubContext.Consumer>
-      //     {hub => <ChildComponent hub={hub} {...hub._getModules(modules)} />}
-      //   </HubContext.Consumer>
-      // )
     }
   }
 }
 
-module.exports = ReactHub;
+module.exports = ReactModuleHub;
