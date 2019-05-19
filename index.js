@@ -16,12 +16,12 @@ class ReactModuleHub {
 
   start(setup) {
     let comp = setup(this);
-    this.__trigger("start", this, this.__config);
+    this.__trigger("start");
     return comp;
   }
 
   ready() {
-    this.__trigger("ready", this, this.__config);
+    this.__trigger("ready");
   }
 
   addModule(module, name) {
@@ -49,15 +49,15 @@ class ReactModuleHub {
     return this.__store;
   }
 
-  getModule(name) {
+  getModule(name = "") {
     let Module = this.__modules[name.toLowerCase()];
     if (!Module) return null;
     return this.__instantiateModule(Module);
   }
 
-  getRequiredModule(name) {
+  getRequiredModule(name = "") {
     let Module = this.__modules[name.toLowerCase()];
-    if (!Module) throw new Error("Module not found");
+    if (!Module) throw new Error(`Module "${name}" not found`);
     return this.__instantiateModule(Module);
   }
 
@@ -87,7 +87,6 @@ class ReactModuleHub {
 
   __setConfig(config) {
     if (!config.modules) config.modules = {};
-    console.log(config);
     this.__config = config;
   }
 
@@ -105,11 +104,14 @@ class ReactModuleHub {
     return new Module(this, _get(this.__config.modules, name));
   }
 
-  __trigger(event, ...data) {
+  __trigger(event) {
     for (const key in this.__modules) {
       if (this.__modules.hasOwnProperty(key)) {
         const instance = this.getModule(key);
-        if (instance[event]) instance[event].apply(this, data);
+        if (instance[event]) instance[event](
+          this,
+          _get(this.__config.modules, key)
+        );
       }
     }
   }

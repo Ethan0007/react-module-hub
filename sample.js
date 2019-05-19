@@ -15,9 +15,9 @@ let hub = new Hub({
 });
 
 class ModuleA {
-  ready() {
-    const mB = hub.getModule("w-t-f");
-    console.log("A", mB.getName());
+  ready(hub, conf) {
+    const mB = hub.getRequiredModule("moduleb");
+    console.log("A:C", conf);
   }
   getName() {
     return "Foo";
@@ -25,21 +25,25 @@ class ModuleA {
 }
 
 class ModuleB {
-  constructor(hub, config) {
-    console.log(config);
-  }
-  ready(hub) {
+  ready(hub, conf) {
     const mA = hub.getModule("modulea");
-    console.log("B", mA.getName());
-    console.log("C", hub.getConfig("foo"));
-    console.log("D", hub.getConfig("boo.jar.inner", "default"));
+    // console.log("B", mA.getName());
+    // console.log("C", hub.getConfig("foo"));
+    // console.log("D", hub.getConfig("boo.jar.inner", "default"));
+    // console.log("X", this);
+    // console.log("Y", hub);
+    console.log("B:C", conf);
+    this.getTest();
   }
   getName() {
     return "Bar";
   }
+  getTest() {
+    return 1;
+  }
 }
 
-hub.addSingletonModule(ModuleB, "w-t-f");
+hub.addSingletonModule(ModuleB);
 hub.addSingletonModule(ModuleA);
 
 hub.start(ins => {
