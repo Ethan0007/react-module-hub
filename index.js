@@ -4,28 +4,31 @@ const _get = require("lodash.get");
 const _reduce = require("lodash.reduce");
 const ModuleHubContext = React.createContext({});
 
-let store;
-let modules = {};
-let instances = {};
-let config = {};
-
 class ReactModuleHub {
+
+  constructor(config = {}) {
+    this.__config = null;
+    this.__store = null;
+    this.__modules = {};
+    this.__instances = {};
+    this.__setConfig(config);
+  }
 
   start(setup) {
     let comp = setup(this);
-    this._trigger("start", this);
+    this.__trigger("start", this, this.__config);
     return comp;
   }
 
   ready() {
-    this._trigger("ready", this);
+    this.__trigger("ready", this, this.__config);
   }
 
   addModule(module, name) {
     name = name || module.name.toLowerCase();
-    if (modules[name])
+    if (this.__modules[name])
       throw new Error(`Module "${name}" already registered`);
-    modules[name] = module;
+    this.__modules[name] = module;
   }
 
   addSingletonModule(module, name) {
@@ -34,39 +37,34 @@ class ReactModuleHub {
     this.getModule(name || module.name.toLowerCase());
   }
 
-  setConfig(_config) {
-    config = _config;
-  }
-
-  setStore(_store) {
-    store = _store;
+  setStore(store) {
+    this.__store = store;
   }
 
   getConfig(pathKey, defaultValue) {
-    let val = _get(config, pathKey);
-    return val === undefined ? defaultValue : val;
+    return _get(this.__config, pathKey, defaultValue);
   }
 
   getStore() {
-    return store;
+    return this.__store;
   }
 
   getModule(name) {
-    let Module = modules[name.toLowerCase()];
+    let Module = this.__modules[name.toLowerCase()];
     if (!Module) return null;
-    return this._instantiateModule(Module);
+    return this.__instantiateModule(Module);
   }
 
   getRequiredModule(name) {
-    let Module = modules[name.toLowerCase()];
+    let Module = this.__modules[name.toLowerCase()];
     if (!Module) throw new Error("Module not found");
-    return this._instantiateModule(Module);
+    return this.__instantiateModule(Module);
   }
 
   getRootReducer() {
     let allReducers = {};
-    for (const key in modules) {
-      if (modules.hasOwnProperty(key)) {
+    for (const key in this.__modules) {
+      if (this.__modules.hasOwnProperty(key)) {
         const instance = this.getModule(key);
         if (instance.reducers)
           allReducers[key] = instance.reducers;
@@ -77,8 +75,8 @@ class ReactModuleHub {
 
   getMainScreens() {
     let screens = {};
-    for (const key in modules) {
-      if (modules.hasOwnProperty(key)) {
+    for (const key in this.__modules) {
+      if (this.__modules.hasOwnProperty(key)) {
         const instance = this.getModule(key);
         if (instance.screens)
           Object.assign(screens, instance.screens);
@@ -87,39 +85,50 @@ class ReactModuleHub {
     return screens;
   }
 
-  _instantiateModule(Module) {
+  __setConfig(config) {
+    if (!config.modules) config.modules = {};
+    console.log(config);
+    this.__config = config;
+  }
+
+  __instantiateModule(Module) {
     if (!Module) return null;
+    let name = Module.name.toLowerCase();
     if (Module.isSingleton) {
-      let name = Module.name.toLowerCase();
-      let instance = instances[name];
+      let instance = this.__instances[name];
       if (!instance) {
-        instance = new Module(this);
-        instances[name] = instance;
+        instance = new Module(this, _get(this.__config.modules, name));
+        this.__instances[name] = instance;
       }
       return instance;
     }
-    return new Module(this);
+    return new Module(this, _get(this.__config.modules, name));
   }
 
-  _trigger(event, data) {
-    for (const key in modules) {
-      if (modules.hasOwnProperty(key)) {
+  __trigger(event, ...data) {
+    for (const key in this.__modules) {
+      if (this.__modules.hasOwnProperty(key)) {
         const instance = this.getModule(key);
-        if (instance[event]) instance[event](data);
+        if (instance[event]) instance[event].apply(this, data);
       }
     }
   }
 
-  _getModules(names) {
+  __getModules(names) {
     return _reduce(names, (o, k) => {
       o[k] = this.getModule(k);
       return o;
     }, {});
   }
 
-}
+  __getRequiredModules(names) {
+    return _reduce(names, (o, k) => {
+      o[k] = this.getRequiredModule(k);
+      return o;
+    }, {});
+  }
 
-ReactModuleHub.ModuleHubContext = ModuleHubContext;
+}
 
 ReactModuleHub.withModules = function (ChildComponent, ...modules) {
   return class extends React.Component {
@@ -127,11 +136,26 @@ ReactModuleHub.withModules = function (ChildComponent, ...modules) {
       return React.createElement(ModuleHubContext.Consumer, null, hub => {
         return React.createElement(ChildComponent, {
           hub,
-          ...hub._getModules(modules)
+          ...hub.__getModules(modules)
         });
       });
     }
   }
 }
+
+ReactModuleHub.withRequiredModules = function (ChildComponent, ...modules) {
+  return class extends React.Component {
+    render() {
+      return React.createElement(ModuleHubContext.Consumer, null, hub => {
+        return React.createElement(ChildComponent, {
+          hub,
+          ...hub.__getRequiredModules(modules)
+        });
+      });
+    }
+  }
+}
+
+ReactModuleHub.ModuleHubContext = ModuleHubContext;
 
 module.exports = ReactModuleHub;

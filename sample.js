@@ -1,6 +1,18 @@
 const Hub = require(".");
 
-let hub = new Hub();
+let hub = new Hub({
+  foo: "bar",
+  boo: {
+    jar: {
+      inner: "yeah"
+    }
+  },
+  modules: {
+    moduleb: {
+      isFoo: "Bar"
+    }
+  }
+});
 
 class ModuleA {
   ready() {
@@ -13,6 +25,9 @@ class ModuleA {
 }
 
 class ModuleB {
+  constructor(hub, config) {
+    console.log(config);
+  }
   ready(hub) {
     const mA = hub.getModule("modulea");
     console.log("B", mA.getName());
@@ -28,16 +43,7 @@ hub.addSingletonModule(ModuleB, "w-t-f");
 hub.addSingletonModule(ModuleA);
 
 hub.start(ins => {
-  ins.setConfig({
-    foo: "bar",
-    boo: {
-      jar: {
-        inner: "yeah"
-      }
-    }
-  });
   setTimeout(() => {
     ins.ready();
-    console.log(ins._getModules(["w-t-f"]));
   }, 100);
 });
