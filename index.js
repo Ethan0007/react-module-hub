@@ -13,8 +13,9 @@ class ReactModuleHub extends EventEmitter {
     this.__store = null;
     this.__modules = {};
     this.__instances = {};
+    this.__startups = [];
     this.__setConfig(config);
-    this.once("start", () => this.__trigger("start"));
+    this.once("start", () => this.__trigger("start", this.__startups));
     this.once("ready", () => this.__trigger("ready"));
   }
 
@@ -22,6 +23,15 @@ class ReactModuleHub extends EventEmitter {
     let comp = setup(this);
     this.emit("start");
     return comp;
+  }
+
+  load() {
+    return Promise.all(this.__startups)
+      .finally(() => {
+        this.__startups.length = 0;
+        this.__startups = null;
+      })
+      .then(() => this.emit("ready"));
   }
 
   addModule(module, name) {
@@ -104,14 +114,15 @@ class ReactModuleHub extends EventEmitter {
     return new Module(this, _get(this.__config.modules, name));
   }
 
-  __trigger(event) {
-    for (const key in this.__modules) {
+  __trigger(event, results) {
+    let { modules: moduleConfigs } = this.__config;
+    for (let key in this.__modules) {
       if (this.__modules.hasOwnProperty(key)) {
-        const instance = this.getModule(key);
-        if (instance[event]) instance[event](
-          this,
-          _get(this.__config.modules, key)
-        );
+        let instance = this.getModule(key);
+        if (instance[event]) {
+          let res = instance[event](this, moduleConfigs[key]);
+          if (results) results.push(res);
+        }
       }
     }
   }

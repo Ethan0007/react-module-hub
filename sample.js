@@ -15,8 +15,17 @@ let hub = new Hub({
 });
 
 class ModuleA {
+  start() {
+    console.log("ModuleA: start");
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve();
+      }, 3000);
+    });
+  }
   ready(hub, conf) {
-    const mB = hub.getRequiredModule("moduleb");
+    console.log("ModuleA: ready");
+    // const mB = hub.getRequiredModule("moduleb");
     console.log("A:C", conf);
   }
   getName() {
@@ -25,13 +34,17 @@ class ModuleA {
 }
 
 class ModuleB {
+  start() {
+    console.log("ModuleB: start");
+    // return new Promise((resolve) => {
+    //   setTimeout(() => {
+    //     resolve();
+    //   }, 3000);
+    // });
+  }
   ready(hub, conf) {
-    const mA = hub.getModule("modulea");
-    // console.log("B", mA.getName());
-    // console.log("C", hub.getConfig("foo"));
-    // console.log("D", hub.getConfig("boo.jar.inner", "default"));
-    // console.log("X", this);
-    // console.log("Y", hub);
+    console.log("ModuleB: ready");
+    // const mA = hub.getModule("modulea");
     console.log("B:C", conf);
     this.getTest();
   }
@@ -43,11 +56,11 @@ class ModuleB {
   }
 }
 
-hub.addSingletonModule(ModuleB);
 hub.addSingletonModule(ModuleA);
+hub.addSingletonModule(ModuleB);
 
 hub.start(ins => {
   setTimeout(() => {
-    ins.emit("ready");
-  }, 100);
+    ins.load();
+  }, 1000);
 });
