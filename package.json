@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/rhaldkhein/react-hub#readme",
   "dependencies": {
+    "events": "^3.0.0",
     "lodash.get": "^4.4.2",
     "lodash.reduce": "^4.6.0",
     "react": "^16.8.6",
