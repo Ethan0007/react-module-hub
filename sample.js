@@ -48,6 +48,6 @@ hub.addSingletonModule(ModuleA);
 
 hub.start(ins => {
   setTimeout(() => {
-    ins.ready();
+    ins.emit("ready");
   }, 100);
 });

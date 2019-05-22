@@ -1,27 +1,27 @@
+const EventEmitter = require("events");
 const React = require("react");
 const { combineReducers } = require("redux");
 const _get = require("lodash.get");
 const _reduce = require("lodash.reduce");
-const ModuleHubContext = React.createContext({});
+const HubContext = React.createContext({});
 
-class ReactModuleHub {
+class ReactModuleHub extends EventEmitter {
 
   constructor(config = {}) {
+    super();
     this.__config = null;
     this.__store = null;
     this.__modules = {};
     this.__instances = {};
     this.__setConfig(config);
+    this.once("start", () => this.__trigger("start"));
+    this.once("ready", () => this.__trigger("ready"));
   }
 
   start(setup) {
     let comp = setup(this);
-    this.__trigger("start");
+    this.emit("start");
     return comp;
-  }
-
-  ready() {
-    this.__trigger("ready");
   }
 
   addModule(module, name) {
@@ -135,29 +135,29 @@ class ReactModuleHub {
 ReactModuleHub.withModules = function (ChildComponent, ...modules) {
   return class extends React.Component {
     render() {
-      return React.createElement(ModuleHubContext.Consumer, null, hub => {
+      return React.createElement(HubContext.Consumer, null, hub => {
         return React.createElement(ChildComponent, {
           hub,
           ...hub.__getModules(modules)
         });
       });
     }
-  }
-}
+  };
+};
 
 ReactModuleHub.withRequiredModules = function (ChildComponent, ...modules) {
   return class extends React.Component {
     render() {
-      return React.createElement(ModuleHubContext.Consumer, null, hub => {
+      return React.createElement(HubContext.Consumer, null, hub => {
         return React.createElement(ChildComponent, {
           hub,
           ...hub.__getRequiredModules(modules)
         });
       });
     }
-  }
-}
+  };
+};
 
-ReactModuleHub.ModuleHubContext = ModuleHubContext;
+ReactModuleHub.HubContext = HubContext;
 
 module.exports = ReactModuleHub;

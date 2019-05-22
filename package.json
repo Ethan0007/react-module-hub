@@ -25,7 +25,10 @@
   "files": [
     "index.js"
   ],
-  "devDependencies": {},
+  "devDependencies": {
+    "babel-eslint": "^10.0.1",
+    "eslint": "^5.16.0"
+  },
   "keywords": [
     "react",
     "framework",
