@@ -138,7 +138,8 @@ ReactModuleHub.withModules = function (ChildComponent, ...modules) {
       return React.createElement(HubContext.Consumer, null, hub => {
         return React.createElement(ChildComponent, {
           hub,
-          ...hub.__getModules(modules)
+          ...this.props,
+          ...hub.__getModules(modules),
         });
       });
     }
@@ -151,7 +152,8 @@ ReactModuleHub.withRequiredModules = function (ChildComponent, ...modules) {
       return React.createElement(HubContext.Consumer, null, hub => {
         return React.createElement(ChildComponent, {
           hub,
-          ...hub.__getRequiredModules(modules)
+          ...this.props,
+          ...hub.__getRequiredModules(modules),
         });
       });
     }
