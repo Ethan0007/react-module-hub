@@ -14,12 +14,29 @@ class ReactModuleHub extends EventEmitter {
     this.__modules = {};
     this.__instances = {};
     this.__startups = [];
+    this.__reducers = null;
+    this.__screens = {};
+    this.__modals = {};
     this.__setConfig(config);
     this.once("start", () => this.__trigger("start", this.__startups));
     this.once("ready", () => this.__trigger("ready"));
   }
 
   start(setup) {
+    let reducers = {};
+    for (const key in this.__modules) {
+      if (this.__modules.hasOwnProperty(key)) {
+        const ins = this.getModule(key);
+        // Reducers
+        if (ins.reducers) reducers[key] = ins.reducers;
+        // Screens
+        if (ins.screens) Object.assign(this.__screens, ins.screens);
+        // Modals
+        if (ins.modals) Object.assign(this.__modals, ins.modals);
+      }
+    }
+    this.__reducers = combineReducers(reducers);
+    // Call component setup from user
     let comp = setup(this);
     this.emit("start");
     return comp;
@@ -30,6 +47,9 @@ class ReactModuleHub extends EventEmitter {
       .finally(() => {
         this.__startups.length = 0;
         this.__startups = null;
+        this.__reducers = null;
+        this.__screens = null;
+        this.__modals = null;
       })
       .then(() => this.emit("ready"));
   }
@@ -72,27 +92,15 @@ class ReactModuleHub extends EventEmitter {
   }
 
   getRootReducer() {
-    let allReducers = {};
-    for (const key in this.__modules) {
-      if (this.__modules.hasOwnProperty(key)) {
-        const instance = this.getModule(key);
-        if (instance.reducers)
-          allReducers[key] = instance.reducers;
-      }
-    }
-    return combineReducers(allReducers);
+    return this.__reducers;
   }
 
   getMainScreens() {
-    let screens = {};
-    for (const key in this.__modules) {
-      if (this.__modules.hasOwnProperty(key)) {
-        const instance = this.getModule(key);
-        if (instance.screens)
-          Object.assign(screens, instance.screens);
-      }
-    }
-    return screens;
+    return this.__screens;
+  }
+
+  getModalScreens() {
+    return this.__modals;
   }
 
   __setConfig(config) {

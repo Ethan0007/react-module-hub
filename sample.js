@@ -15,6 +15,10 @@ let hub = new Hub({
 });
 
 class ModuleA {
+  constructor() {
+    this.screens = { a: 1 };
+    this.modals = { a: 2 };
+  }
   start() {
     console.log("ModuleA: start");
     return new Promise((resolve) => {
@@ -34,6 +38,11 @@ class ModuleA {
 }
 
 class ModuleB {
+
+  constructor() {
+    this.screens = { b: 1 };
+    this.modals = { b: 2 };
+  }
   start() {
     console.log("ModuleB: start");
     // return new Promise((resolve) => {
@@ -61,6 +70,16 @@ hub.addSingletonModule(ModuleB);
 
 hub.start(ins => {
   setTimeout(() => {
-    ins.load();
+
+    // Methods `getRootReducers`, `getMainScreens` and `getModalScreens`
+    // must be called before `load` if you need it
+    console.log(ins.getRootReducer());
+    console.log(ins.getMainScreens());
+    console.log(ins.getModalScreens());
+    ins.load().then(() => {
+      console.log(ins.getRootReducer());
+      console.log(ins.getMainScreens());
+      console.log(ins.getModalScreens());
+    });
   }, 1000);
 });
