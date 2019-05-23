@@ -40,9 +40,16 @@ class ReactModuleHub extends EventEmitter {
     }
     this.__reducers = combineReducers(reducers);
     // Call component setup from user
-    let comp = setup(this);
-    this.emit("start");
-    return comp;
+    return setup(this);
+  }
+
+  init(createStore) {
+    return this.getInitialState().then(initState => {
+      const store = createStore(this.getRootReducer(), initState);
+      this.setStore(store);
+    }).then(() => {
+      this.emit("start");
+    });
   }
 
   load() {
