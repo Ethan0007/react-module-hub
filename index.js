@@ -2,13 +2,16 @@ const EventEmitter = require("events");
 const React = require("react");
 const { combineReducers } = require("redux");
 const _get = require("lodash.get");
+const _set = require("lodash.set");
 const _reduce = require("lodash.reduce");
 const HubContext = React.createContext({});
+const prefix = "__HUB__:";
 
 class ReactModuleHub extends EventEmitter {
 
-  constructor(config = {}) {
+  constructor(config = {}, options = {}) {
     super();
+    this.__options = options;
     this.__config = null;
     this.__store = null;
     this.__modules = {};
@@ -69,6 +72,22 @@ class ReactModuleHub extends EventEmitter {
 
   setStore(store) {
     this.__store = store;
+    // Observe those modules who set persist property
+    for (const key in this.__modules) {
+      if (!this.__modules.hasOwnProperty(key)) continue;
+      const ins = this.getModule(key);
+      if (ins.persist) {
+        if (ins.persist === true) {
+          // Persist whole module
+          this.__persistState(ins.__name);
+        } else {
+          // Should be array, persist by keys
+          ins.persist.forEach(path => {
+            this.__persistState(ins.__name + "." + path);
+          });
+        }
+      }
+    }
   }
 
   getConfig(pathKey, defaultValue) {
@@ -77,6 +96,26 @@ class ReactModuleHub extends EventEmitter {
 
   getStore() {
     return this.__store;
+  }
+
+  getInitialState() {
+    let state = {};
+    let { storage } = this.__options;
+    for (const key in this.__modules) {
+      if (!this.__modules.hasOwnProperty(key)) continue;
+      const ins = this.getModule(key);
+      if (ins.persist && storage) {
+        if (ins.persist === true) {
+          _set(state, ins.__name, storage.getItem(prefix + ins.__name) || {});
+        } else {
+          ins.persist.forEach(path => {
+            path = ins.__name + "." + path;
+            _set(state, path, storage.getItem(prefix + path));
+          });
+        }
+      }
+    }
+    return state;
   }
 
   getModule(name = "") {
@@ -108,18 +147,36 @@ class ReactModuleHub extends EventEmitter {
     this.__config = config;
   }
 
+  __persistState(path) {
+    let lastState;
+    let { storage } = this.__options;
+    let handleChange = () => {
+      let currentState = _get(this.__store.getState(), path);
+      if (currentState !== lastState) {
+        lastState = currentState;
+        // Write to storage
+        if (storage) storage.setItem(prefix + path, currentState);
+      }
+    };
+    let unsubscribe = this.__store.subscribe(handleChange);
+    handleChange();
+    return unsubscribe;
+  }
+
   __instantiateModule(Module) {
     if (!Module) return null;
     let name = Module.name.toLowerCase();
+    let config = _get(this.__config.modules, name);
     if (Module.isSingleton) {
       let instance = this.__instances[name];
       if (!instance) {
-        instance = new Module(this, _get(this.__config.modules, name));
+        instance = new Module(this, config);
+        instance.__name = name;
         this.__instances[name] = instance;
       }
       return instance;
     }
-    return new Module(this, _get(this.__config.modules, name));
+    return new Module(this, config);
   }
 
   __trigger(event, results) {
