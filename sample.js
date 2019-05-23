@@ -18,10 +18,14 @@ let hub = new Hub({
 }, {
     storage: {
       setItem(key, value) {
-        localStorage.setItem(key, JSON.stringify(value));
+        return Promise.resolve().then(() => {
+          return localStorage.setItem(key, value);
+        });
       },
       getItem(key) {
-        return JSON.parse(localStorage.getItem(key));
+        return Promise.resolve().then(() => {
+          return localStorage.getItem(key);
+        });
       }
     }
   });

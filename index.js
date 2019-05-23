@@ -99,23 +99,34 @@ class ReactModuleHub extends EventEmitter {
   }
 
   getInitialState() {
-    let state = {};
-    let { storage } = this.__options;
-    for (const key in this.__modules) {
-      if (!this.__modules.hasOwnProperty(key)) continue;
-      const ins = this.getModule(key);
-      if (ins.persist && storage) {
-        if (ins.persist === true) {
-          _set(state, ins.__name, storage.getItem(prefix + ins.__name) || {});
-        } else {
-          ins.persist.forEach(path => {
-            path = ins.__name + "." + path;
-            _set(state, path, storage.getItem(prefix + path));
-          });
+    return new Promise((resolve, reject) => {
+      let state = {};
+      let { storage } = this.__options;
+      for (const key in this.__modules) {
+        if (!this.__modules.hasOwnProperty(key)) continue;
+        const ins = this.getModule(key);
+        if (ins.persist && storage) {
+          if (ins.persist === true) {
+            storage.getItem(prefix + ins.__name)
+              .then(value => _set(state, ins.__name, value || {}))
+              .then(resolve)
+              .catch(reject);
+          } else {
+            let promises = [];
+            ins.persist.forEach(path => {
+              path = ins.__name + "." + path;
+              promises.push(
+                storage.getItem(prefix + path)
+                  .then(value => {
+                    _set(state, path, value);
+                  })
+              );
+            });
+            Promise.all(promises).then(() => resolve(state)).catch(reject);
+          }
         }
       }
-    }
-    return state;
+    });
   }
 
   getModule(name = "") {
