@@ -142,13 +142,13 @@ class ReactModuleHub extends EventEmitter {
   getModule(name = "") {
     let Module = this.__modules[name.toLowerCase()];
     if (!Module) return null;
-    return this.__instantiateModule(Module);
+    return this.__instantiateModule(Module, name);
   }
 
   getRequiredModule(name = "") {
     let Module = this.__modules[name.toLowerCase()];
     if (!Module) throw new Error(`Module "${name}" not found`);
-    return this.__instantiateModule(Module);
+    return this.__instantiateModule(Module, name);
   }
 
   getRootReducer() {
@@ -184,9 +184,9 @@ class ReactModuleHub extends EventEmitter {
     return unsubscribe;
   }
 
-  __instantiateModule(Module) {
+  __instantiateModule(Module, name) {
     if (!Module) return null;
-    let name = Module.name.toLowerCase();
+    name = name || Module.name.toLowerCase();
     let config = _get(this.__config.modules, name);
     if (Module.isSingleton) {
       let instance = this.__instances[name];
