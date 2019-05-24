@@ -109,10 +109,12 @@ class ReactModuleHub extends EventEmitter {
     return new Promise((resolve, reject) => {
       let state = {};
       let { storage } = this.__options;
+      let hasPersist = false;
       for (const key in this.__modules) {
         if (!this.__modules.hasOwnProperty(key)) continue;
         const ins = this.getModule(key);
         if (ins.persist && storage) {
+          hasPersist = true;
           if (ins.persist === true) {
             storage.getItem(prefix + ins.__name)
               .then(value => _set(state, ins.__name, value || {}))
@@ -133,6 +135,7 @@ class ReactModuleHub extends EventEmitter {
           }
         }
       }
+      if (!hasPersist) resolve({});
     });
   }
 
