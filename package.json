@@ -1,6 +1,6 @@
 {
   "name": "react-module-hub",
-  "version": "1.2.4",
+  "version": "2.0.0",
   "description": "A simple framework for modular react project",
   "main": "index.js",
   "scripts": {
