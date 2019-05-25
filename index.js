@@ -46,7 +46,6 @@ class ModuleGetter extends EventEmitter {
       let instance = instances[label];
       if (!instance) {
         instance = new Module(this.__hub.getter, config);
-        instance.__label = label;
         instances[label] = instance;
       }
       return instance;
@@ -181,14 +180,14 @@ class ReactModuleHub {
         if (mod.persist && storage) {
           hasPersist = true;
           if (mod.persist === true) {
-            storage.getItem(prefix + mod.__label)
-              .then(value => _set(state, mod.__label, JSON.parse(value || "{}")))
+            storage.getItem(prefix + mod.label)
+              .then(value => _set(state, mod.label, JSON.parse(value || "{}")))
               .then(resolve)
               .catch(reject);
           } else {
             let promises = [];
             mod.persist.forEach(path => {
-              path = mod.__label + "." + path;
+              path = mod.label + "." + path;
               promises.push(
                 storage.getItem(prefix + path)
                   .then(value => {
@@ -222,11 +221,11 @@ class ReactModuleHub {
       if (mod.persist) {
         if (mod.persist === true) {
           // Persist whole module
-          this.__persistState(mod.__label);
+          this.__persistState(mod.label);
         } else {
           // Should be array, persist by keys
           mod.persist.forEach(path => {
-            this.__persistState(mod.__label + "." + path);
+            this.__persistState(mod.label + "." + path);
           });
         }
       }
@@ -241,7 +240,8 @@ class ReactModuleHub {
       if (currentState !== lastState) {
         lastState = currentState;
         // Write to storage
-        if (storage) storage.setItem(prefix + path, JSON.stringify(currentState));
+        if (storage && path)
+          storage.setItem(prefix + path, JSON.stringify(currentState));
       }
     };
     let unsubscribe = this.__store.subscribe(handleChange);
