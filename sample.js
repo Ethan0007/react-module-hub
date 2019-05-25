@@ -53,79 +53,58 @@ function counter(state = 0, action) {
 }
 
 class ModuleA {
-  constructor() {
-    this.screens = { a: 1 };
-    this.modals = { a: 2 };
-  }
-  start() {
+  start(hub) {
     console.log("ModuleA: start");
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve();
-      }, 3000);
-    });
+    const mB1 = hub.getModule("moduleb");
+    console.log(mB1.getName());
+    const mB2 = hub.getModule("moduleb");
+    console.log("X", mB1 == mB2);
   }
-  ready(hub, conf) {
+  ready() {
     console.log("ModuleA: ready");
-    // const mB = hub.getRequiredModule("moduleb");
-    // console.log("A:C", conf);
   }
   getName() {
-    return "Foo";
+    return "Module From A";
   }
 }
+
+ModuleA.label = "modulea";
+// ModuleA.reducers = todos;
 
 class ModuleB {
-  constructor() {
-    this.screens = { b: 1 };
-    this.modals = { b: 2 };
-    this.persist = ["counter"];
-    this.reducers = combineReducers({
-      todos,
-      counter
-    });
-  }
-  start() {
+  start(hub, config) {
     console.log("ModuleB: start");
-    // return new Promise((resolve) => {
-    //   setTimeout(() => {
-    //     resolve();
-    //   }, 3000);
-    // });
+    const mA = hub.getModule("modulea");
+    console.log(mA.getName());
+    console.log(hub.getRequiredModule);
+    console.log(hub.getRequiredModule);
+    console.log(config);
   }
-  ready(hub, conf) {
-    const store = hub.getStore();
-    const state = store.getState();
+  ready() {
     console.log("ModuleB: ready");
-    // const mA = hub.getModule("modulea");
-    // console.log("B:C", conf);
-    console.log(state);
-    this.getTest();
-    store.dispatch({
-      type: "CLEAR"
-    });
   }
   getName() {
-    return "Bar";
-  }
-  getTest() {
-    return 1;
+    return "Module From B";
   }
 }
 
-hub.addSingletonModule(ModuleA);
-hub.addSingletonModule(ModuleB);
+let newModuleB = Hub.createModule("moduleb", ModuleB, {
+  reducers: todos
+});
+
+hub.register(ins => {
+  ins.addModule(ModuleA);
+  ins.addModule(newModuleB);
+});
+
+console.log(hub.isReady);
 
 hub.start(ins => {
   setTimeout(() => {
-    // Methods `getRootReducers`, `getMainScreens` and `getModalScreens`
-    // must be called before `load` if you need it
-    const initialState = ins.getInitialState();
-    const store = createStore(
-      ins.getRootReducer(),
-      initialState
-    );
-    ins.setStore(store);
-    ins.load();
+    ins.init((rootReducer, initialState) => {
+      return createStore(rootReducer, initialState);
+    }).then(() => {
+      console.log(hub.isReady);
+    });
   }, 1000);
 });
