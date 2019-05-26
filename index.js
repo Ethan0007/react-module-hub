@@ -9,8 +9,8 @@ const HubContext = React.createContext({});
 const prefix = "__HUB__:";
 
 function checkModule(module) {
-  if (!module.modulename)
-    throw new Error("Module must have a name");
+  if (!module.module)
+    throw new Error("Not a module. Require static property 'module' with string value as the name.");
 }
 
 class ModuleGetter extends EventEmitter {
@@ -81,7 +81,7 @@ class ModuleSetter {
 
   addScopeModule(module, name) {
     checkModule(module);
-    name = (name || module.modulename).toLowerCase();
+    name = (name || module.module).toLowerCase();
     if (this.__hub.__modules[name])
       throw new Error(`Module "${name}" already registered`);
     this.__hub.__modules[name] = module;
@@ -89,7 +89,7 @@ class ModuleSetter {
 
   addModule(module, name) {
     checkModule(module);
-    name = (name || module.modulename).toLowerCase();
+    name = (name || module.module).toLowerCase();
     this.addScopeModule(module, name);
     module.isSingleton = true;
     this.__hub.getter.getModule(name);
@@ -112,19 +112,19 @@ class ReactModuleHub {
     this.__setConfig(config);
   }
 
-  start(setup) {
+  start(setup, registrar) {
     let reducers = {};
     let screens = {};
     let modals = {};
     let extra = {};
+    // First of all, get all modules
+    registrar(this.setter);
+    // Parsing
     for (const key in this.__modules) {
       if (this.__modules.hasOwnProperty(key)) {
         const mod = this.__modules[key];
-        // Reducers
         if (mod.reducers) reducers[key] = mod.reducers;
-        // Screens
         if (mod.screens) Object.assign(screens, mod.screens);
-        // Modals
         if (mod.modals) Object.assign(modals, mod.modals);
         // Extra data to pass
         if (mod.extra) extra[key] = mod.extra;
@@ -162,10 +162,6 @@ class ReactModuleHub {
       });
   }
 
-  register(registrar) {
-    registrar(this.setter);
-  }
-
   getConfig(pathKey, defaultValue) {
     return _get(this.__config, pathKey, defaultValue);
   }
@@ -181,14 +177,14 @@ class ReactModuleHub {
         if (mod.persist && storage) {
           hasPersist = true;
           if (mod.persist === true) {
-            storage.getItem(prefix + mod.modulename)
-              .then(value => _set(state, mod.modulename, JSON.parse(value || "{}")))
+            storage.getItem(prefix + mod.module)
+              .then(value => _set(state, mod.module, JSON.parse(value || "{}")))
               .then(resolve)
               .catch(reject);
           } else {
             let promises = [];
             mod.persist.forEach(path => {
-              path = mod.modulename + "." + path;
+              path = mod.module + "." + path;
               promises.push(
                 storage.getItem(prefix + path)
                   .then(value => {
@@ -222,11 +218,11 @@ class ReactModuleHub {
       if (mod.persist) {
         if (mod.persist === true) {
           // Persist whole module
-          this.__persistState(mod.modulename);
+          this.__persistState(mod.module);
         } else {
           // Should be array, persist by keys
           mod.persist.forEach(path => {
-            this.__persistState(mod.modulename + "." + path);
+            this.__persistState(mod.module + "." + path);
           });
         }
       }
@@ -293,12 +289,12 @@ ReactModuleHub.withRequiredModules = function (ChildComponent, ...modules) {
   };
 };
 
-ReactModuleHub.createModule = function (name, module, options = {}) {
-  module.modulename = name;
+function createModule(name, module, options = {}) {
+  module.module = name;
   Object.assign(module, options);
   return module;
-};
-
+}
+ReactModuleHub.createModule = createModule;
+ReactModuleHub.asModule = createModule;
 ReactModuleHub.HubContext = HubContext;
-
 module.exports = ReactModuleHub;
