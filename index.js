@@ -4,13 +4,14 @@ const { combineReducers } = require("redux");
 const _get = require("lodash.get");
 const _set = require("lodash.set");
 const _reduce = require("lodash.reduce");
+const _isEmpty = require("lodash.isempty");
 const HubContext = React.createContext({});
 const prefix = "__HUB__:";
 
-function _isEmptyObject(obj) {
-  return Object.keys(obj).length === 0 && obj.constructor === Object;
+function checkModule(module) {
+  if (!module.modulename)
+    throw new Error("Module must have a name");
 }
-
 
 class ModuleGetter extends EventEmitter {
   constructor(hub) {
@@ -26,27 +27,27 @@ class ModuleGetter extends EventEmitter {
     return this.__hub.__store;
   }
 
-  getModule(label = "") {
-    let Module = this.__hub.__modules[label.toLowerCase()];
+  getModule(name = "") {
+    let Module = this.__hub.__modules[name.toLowerCase()];
     if (!Module) return null;
-    return this.__instantiateModule(Module, label);
+    return this.__instantiateModule(Module, name);
   }
 
-  getRequiredModule(label = "") {
-    let Module = this.__hub.__modules[label.toLowerCase()];
-    if (!Module) throw new Error(`Module "${label}" not found`);
-    return this.__instantiateModule(Module, label);
+  getRequiredModule(name = "") {
+    let Module = this.__hub.__modules[name.toLowerCase()];
+    if (!Module) throw new Error(`Module "${name}" not found`);
+    return this.__instantiateModule(Module, name);
   }
 
-  __instantiateModule(Module, label) {
+  __instantiateModule(Module, name) {
     if (!Module) return null;
     let instances = this.__hub.__instances;
-    let config = _get(this.__hub.__config.modules, label);
+    let config = _get(this.__hub.__config.modules, name);
     if (Module.isSingleton) {
-      let instance = instances[label];
+      let instance = instances[name];
       if (!instance) {
         instance = new Module(this.__hub.getter, config);
-        instances[label] = instance;
+        instances[name] = instance;
       }
       return instance;
     }
@@ -69,7 +70,6 @@ class ModuleGetter extends EventEmitter {
 
 }
 
-
 class ModuleSetter {
   constructor(hub) {
     this.__hub = hub;
@@ -79,21 +79,22 @@ class ModuleSetter {
     return this.__hub.getConfig(pathKey, defaultValue);
   }
 
-  addScopeModule(module, label) {
-    label = (label || module.label).toLowerCase();
-    if (this.__hub.__modules[label])
-      throw new Error(`Module "${label}" already registered`);
-    this.__hub.__modules[label] = module;
+  addScopeModule(module, name) {
+    checkModule(module);
+    name = (name || module.modulename).toLowerCase();
+    if (this.__hub.__modules[name])
+      throw new Error(`Module "${name}" already registered`);
+    this.__hub.__modules[name] = module;
   }
 
-  addModule(module, label) {
-    label = (label || module.label).toLowerCase();
-    this.addScopeModule(module, label);
+  addModule(module, name) {
+    checkModule(module);
+    name = (name || module.modulename).toLowerCase();
+    this.addScopeModule(module, name);
     module.isSingleton = true;
-    this.__hub.getter.getModule(label);
+    this.__hub.getter.getModule(name);
   }
 }
-
 
 class ReactModuleHub {
 
@@ -130,7 +131,7 @@ class ReactModuleHub {
       }
     }
     // Combine all reducers from modules
-    if (!_isEmptyObject(reducers))
+    if (!_isEmpty(reducers))
       this.__reducers = combineReducers(reducers);
     // Call component setup from user
     return setup(this, {
@@ -180,14 +181,14 @@ class ReactModuleHub {
         if (mod.persist && storage) {
           hasPersist = true;
           if (mod.persist === true) {
-            storage.getItem(prefix + mod.label)
-              .then(value => _set(state, mod.label, JSON.parse(value || "{}")))
+            storage.getItem(prefix + mod.modulename)
+              .then(value => _set(state, mod.modulename, JSON.parse(value || "{}")))
               .then(resolve)
               .catch(reject);
           } else {
             let promises = [];
             mod.persist.forEach(path => {
-              path = mod.label + "." + path;
+              path = mod.modulename + "." + path;
               promises.push(
                 storage.getItem(prefix + path)
                   .then(value => {
@@ -221,11 +222,11 @@ class ReactModuleHub {
       if (mod.persist) {
         if (mod.persist === true) {
           // Persist whole module
-          this.__persistState(mod.label);
+          this.__persistState(mod.modulename);
         } else {
           // Should be array, persist by keys
           mod.persist.forEach(path => {
-            this.__persistState(mod.label + "." + path);
+            this.__persistState(mod.modulename + "." + path);
           });
         }
       }
@@ -292,8 +293,8 @@ ReactModuleHub.withRequiredModules = function (ChildComponent, ...modules) {
   };
 };
 
-ReactModuleHub.createModule = function (label, module, options = {}) {
-  module.label = label;
+ReactModuleHub.createModule = function (name, module, options = {}) {
+  module.modulename = name;
   Object.assign(module, options);
   return module;
 };

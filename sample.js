@@ -68,7 +68,7 @@ class ModuleA {
   }
 }
 
-ModuleA.label = "modulea";
+ModuleA.modulename = "modulea";
 // ModuleA.reducers = todos;
 
 class ModuleB {
@@ -79,6 +79,11 @@ class ModuleB {
     console.log(hub.getRequiredModule);
     console.log(hub.getRequiredModule);
     console.log(config);
+    return new Promise(resolve => {
+      setTimeout(() => {
+        resolve();
+      }, 3000);
+    });
   }
   ready() {
     console.log("ModuleB: ready");
@@ -101,9 +106,7 @@ console.log(hub.isReady);
 
 hub.start(ins => {
   setTimeout(() => {
-    ins.init((rootReducer, initialState) => {
-      return createStore(rootReducer, initialState);
-    }).then(() => {
+    ins.init().then(() => {
       console.log(hub.isReady);
     });
   }, 1000);
