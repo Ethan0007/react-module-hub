@@ -68,13 +68,13 @@ class ModuleA {
   }
 }
 
-ModuleA.module = "modulea";
+ModuleA.label = "module-a";
 // ModuleA.reducers = todos;
 
 class ModuleB {
   start(hub, config) {
     console.log("ModuleB: start");
-    const mA = hub.getModule("modulea");
+    const mA = hub.getRequiredModule("module-A");
     console.log(mA.getName());
     console.log(hub.getRequiredModule);
     console.log(hub.getRequiredModule);

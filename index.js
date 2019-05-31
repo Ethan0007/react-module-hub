@@ -266,7 +266,7 @@ ReactModuleHub.withModules = function (ChildComponent, ...modules) {
     render() {
       return React.createElement(HubContext.Consumer, null, hub => {
         return React.createElement(ChildComponent, {
-          hub,
+          hub: hub.getter,
           modules: hub.getter.__getModules(modules),
           ...this.props
         });
@@ -280,7 +280,7 @@ ReactModuleHub.withRequiredModules = function (ChildComponent, ...modules) {
     render() {
       return React.createElement(HubContext.Consumer, null, hub => {
         return React.createElement(ChildComponent, {
-          hub,
+          hub: hub.getter,
           modules: hub.getter.__getRequiredModules(modules),
           ...this.props
         });
