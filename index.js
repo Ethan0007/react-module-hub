@@ -3,6 +3,7 @@ const React = require("react");
 const { combineReducers } = require("redux");
 const _get = require("lodash.get");
 const _set = require("lodash.set");
+const _pick = require("lodash.pick");
 const _reduce = require("lodash.reduce");
 const _isEmpty = require("lodash.isempty");
 const HubContext = React.createContext({});
@@ -274,9 +275,11 @@ ReactModuleHub.withModules = function (ChildComponent, ...modules) {
   return class extends React.Component {
     render() {
       return React.createElement(HubContext.Consumer, null, hub => {
+        const store = hub.getter.getStore();
         return React.createElement(ChildComponent, {
           hub: hub.getter,
           modules: hub.getter._getModules(modules),
+          state: store && _pick(store.getState(), modules),
           ...this.props
         });
       });
@@ -288,9 +291,11 @@ ReactModuleHub.withRequiredModules = function (ChildComponent, ...modules) {
   return class extends React.Component {
     render() {
       return React.createElement(HubContext.Consumer, null, hub => {
+        const store = hub.getter.getStore();
         return React.createElement(ChildComponent, {
           hub: hub.getter,
           modules: hub.getter._getRequiredModules(modules),
+          state: store && _pick(store.getState(), modules),
           ...this.props
         });
       });

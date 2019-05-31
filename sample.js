@@ -30,7 +30,11 @@ let hub = new Hub({
     }
   });
 
-function todos(state = [], action) {
+const initTodo = {
+  list: []
+};
+
+function todos(state = initTodo, action) {
   switch (action.type) {
     case "ADD_TODO":
       return state.concat([action.text]);
@@ -69,7 +73,7 @@ class ModuleA {
 }
 
 ModuleA.module = "module-a";
-// ModuleA.reducers = todos;
+ModuleA.reducers = todos;
 
 class ModuleB {
   start(hub, config) {
@@ -94,25 +98,24 @@ class ModuleB {
 }
 
 let newModuleB = Hub.createModule("moduleb", ModuleB, {
-  reducers: todos
+  reducers: counter
 });
 
 let registrar = ins => {
   ins.addModule(ModuleA);
   ins.addModule(newModuleB);
-  return [
-    new Promise(resolve => {
-      setTimeout(resolve, 6000);
-    })
-  ];
 };
-
-console.log(hub.isReady);
 
 hub.start(ins => {
   setTimeout(() => {
-    ins.init().then(() => {
+    ins.init((rootReducer, initialState) => {
+      return createStore(
+        rootReducer,
+        initialState
+      );
+    }).then(() => {
       console.log(hub.isReady);
+      console.log(hub.getter.getStore().getState());
     });
   }, 1000);
 }, registrar);
