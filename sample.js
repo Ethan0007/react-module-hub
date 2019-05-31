@@ -68,7 +68,7 @@ class ModuleA {
   }
 }
 
-ModuleA.label = "module-a";
+ModuleA.module = "module-a";
 // ModuleA.reducers = todos;
 
 class ModuleB {
@@ -100,6 +100,11 @@ let newModuleB = Hub.createModule("moduleb", ModuleB, {
 let registrar = ins => {
   ins.addModule(ModuleA);
   ins.addModule(newModuleB);
+  return [
+    new Promise(resolve => {
+      setTimeout(resolve, 6000);
+    })
+  ];
 };
 
 console.log(hub.isReady);
