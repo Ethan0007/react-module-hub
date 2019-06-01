@@ -1,4 +1,6 @@
-
+/**
+ * Responsible to loading an async module.
+ */
 class Loader {
 
   constructor(loader) {
@@ -12,6 +14,12 @@ class Loader {
     this.$ = null
   }
 
+  /**
+   * Loads the module asynchronously.
+   * 
+   * @returns {promise}
+   * Passing the module constructor
+   */
   _load() {
     // Loading the module
     return this._loader()
@@ -22,6 +30,16 @@ class Loader {
       })
   }
 
+  /**
+   * Creates an instance for async module.
+   * 
+   * @param {getter} getter 
+   * Module getter to pass to module
+   * @param {object} config 
+   * Configuration for the module
+   * @returns {promise}
+   * Passing the module instance
+   */
   _getInstance(getter, config) {
     const prom = this._loaded
       ? Promise.resolve(this._module)
@@ -40,4 +58,7 @@ class Loader {
 
 }
 
+/**
+ * Export
+ */
 export default Loader
