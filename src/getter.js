@@ -14,6 +14,9 @@ import _get from 'lodash.get'
  */
 class ModuleGetter extends EventEmitter {
 
+  // Holds the hub.
+  _hub = null
+
   constructor(hub) {
     super()
     this._hub = hub
@@ -76,27 +79,26 @@ class ModuleGetter extends EventEmitter {
   /**
    * Returns a loader object that loads the module
    * asynchronously. When done, invokes the callback
-   * passing the instance of the module or `null` if
-   * not found.
+   * passing the instance of the module.
    * 
    * @param {string} name 
    * Name of module to get
    * @param {function} callback 
    * Function to call when loading is complete
-   * and pass the instance of the module or `null`
-   * @returns {loader}
-   * Loader object
+   * and pass the instance of the module
+   * @returns {loader|null}
+   * Loader object or null if not registered
    */
   getAsyncModule(name, callback) {
 
     // TODO: 
-    // if module is async and contains reducer,
+    // If module is async and contains reducer,
     // we need to add it to existing store.
     // Also test for unused initial state, is it striped out
     // on createStore or not
 
     let loader = this._hub._modules[name.toLowerCase()]
-    if (!loader) return Promise.resolve(null)
+    if (!loader) return null
     loader._getInstance().then(callback || (ins => ins))
     return loader
   }
@@ -104,18 +106,23 @@ class ModuleGetter extends EventEmitter {
   /**
    * Returns a loader object that loads the module
    * asynchronously. When done, invokes the callback
-   * passing the instance of the module or throws as
-   * `error` if not found.
+   * passing the instance of the module.
+   * 
+   * Throws as `error` if module not registered.
    * 
    * @param {stringh} name 
    * Name of module to get
+   * @param {function} callback 
+   * Function to call when loading is complete
+   * and pass the instance of the module
    * @returns {loader}
    * Loader object
    */
-  getRequiredAsyncModule(name) {
+  getRequiredAsyncModule(name, callback) {
     let loader = this._hub._modules[name.toLowerCase()]
     if (!loader) return Promise.reject(new Error(`Module "${name}" not found`))
-    return loader._getInstance()
+    loader._getInstance().then(callback || (ins => ins))
+    return loader
   }
 
   /**

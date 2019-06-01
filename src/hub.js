@@ -9,7 +9,7 @@ import ModuleSetter from './setter'
 
 /**
  * The prefix to use when saving the 
- * state to store
+ * state to storage
  */
 const prefix = '__HUB__:'
 

@@ -7,6 +7,9 @@ import Loader from './loader'
  */
 class ModuleSetter {
 
+  // Holds the hub.
+  _hub = null
+
   constructor(hub) {
     this._hub = hub
   }
