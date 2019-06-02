@@ -24,7 +24,7 @@ const CoreContext = React.createContext({})
  */
 class Core {
 
-  // Truw when everything is loaded
+  // True when everything is loaded and ready
   isReady = false
   // Module getter
   getter = null
@@ -87,7 +87,7 @@ class Core {
     for (const key in this._modules) {
       if (this._modules.hasOwnProperty(key)) {
         const mod = this._modules[key]
-        if (mod.isAsync) continue
+        if (mod instanceof Loader) continue
         if (mod.reducers) reducers[key] = mod.reducers
         if (mod.screens) Object.assign(screens, mod.screens)
         if (mod.modals) Object.assign(modals, mod.modals)
@@ -116,6 +116,11 @@ class Core {
    * @returns {promise}
    */
   init(storeCreator) {
+    const linkImmediateAsyncModules = results => {
+      results.forEach(module => {
+        this.setter.addModule(module.default)
+      })
+    }
     return this._getInitialState()
       .then(initState => {
         if (storeCreator && this._reducers) {
@@ -124,6 +129,7 @@ class Core {
         }
       })
       .then(() => Promise.all(this._imports))
+      .then(linkImmediateAsyncModules)
       .then(() => this._trigger('start', this._startups))
       .then(() => Promise.all(this._startups))
       .finally(() => {
@@ -165,7 +171,7 @@ class Core {
       for (const key in this._modules) {
         if (!this._modules.hasOwnProperty(key)) continue
         const mod = this._modules[key]
-        if (mod.isAsync) continue
+        if (mod instanceof Loader) continue
         if (mod.persist && storage) {
           hasPersist = true
           if (mod.persist === true) {
@@ -220,7 +226,7 @@ class Core {
     for (const key in this._modules) {
       if (!this._modules.hasOwnProperty(key)) continue
       const mod = this._modules[key]
-      if (mod.isAsync) continue
+      if (mod instanceof Loader) continue
       if (mod.persist) {
         if (mod.persist === true) {
           // Persist whole module
@@ -262,7 +268,7 @@ class Core {
   }
 
   /**
-   * Invokes a method in all modules.
+   * Invokes a method in all singleton modules.
    * 
    * @param {string} event 
    * The method name to invoke in module
@@ -272,10 +278,9 @@ class Core {
    */
   _trigger(event, results) {
     let { modules: moduleConfigs } = this._config
-    for (let key in this._modules) {
-      if (this._modules.hasOwnProperty(key)
-        && !(this._modules[key] instanceof Loader)) {
-        let instance = this.getter.getModule(key)
+    for (let key in this._instances) {
+      if (this._instances.hasOwnProperty(key)) {
+        let instance = this._instances[key]
         if (instance && instance[event]) {
           let res = instance[event](this.getter, moduleConfigs[key])
           if (results) results.push(res)

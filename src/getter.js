@@ -2,6 +2,7 @@ import { Component } from 'react'
 import EventEmitter from 'events'
 import _reduce from 'lodash.reduce'
 import _get from 'lodash.get'
+import Loader from './loader'
 
 /**
  * Responsible to providing a module to another module.
@@ -10,7 +11,7 @@ import _get from 'lodash.get'
  * `start` and `ready` lifecycle.
  * 
  * This also provides event-bus feature 
- * using `EventEmittor` from node.
+ * using `EventEmitter` from node.
  * 
  */
 class ModuleGetter extends EventEmitter {
@@ -58,7 +59,7 @@ class ModuleGetter extends EventEmitter {
    */
   getModule(name) {
     let module = this._core._modules[name.toLowerCase()]
-    if (!module || module.isAsync) return null
+    if (!module) return null
     return this._instantiateModule(module, name)
   }
 
@@ -73,7 +74,7 @@ class ModuleGetter extends EventEmitter {
    */
   getRequiredModule(name) {
     let module = this._core._modules[name.toLowerCase()]
-    if (!module || module.isAsync) throw new Error(`Module "${name}" not found`)
+    if (!module) throw new Error(`Module "${name}" not found`)
     return this._instantiateModule(module, name)
   }
 
@@ -100,7 +101,8 @@ class ModuleGetter extends EventEmitter {
 
     let loader = this._core._modules[name.toLowerCase()]
     if (!loader) return null
-    loader._getInstance().then(instance => {
+    let config = _get(this._core._config.modules, name)
+    loader._getInstance(this, config).then(instance => {
       if (callback) {
         if (callback instanceof Component)
           callback.setState(() => ({ [name]: instance }))
@@ -136,16 +138,25 @@ class ModuleGetter extends EventEmitter {
    * Create an instance of module. If singleton, will save
    * the instance to collection pool.
    * 
+   * If the module is async and is loaded, also create
+   * an instance and return it, otherwise return `null`
+   * 
    * @param {module} Module 
    * Module to create instance
    * @param {string} name 
    * Name of module
-   * @returns {instance}
-   * Instance of module 
+   * @returns {instance|null}
+   * Instance of module or `null` if not found for async
    */
   _instantiateModule(Module, name) {
     let instances = this._core._instances
     let config = _get(this._core._config.modules, name)
+    // Deal with async module
+    if (Module instanceof Loader) {
+      if (Module._fetched) Module = Module._module
+      else return null
+    }
+    // Continue creating an instance
     if (Module.isSingleton) {
       let instance = instances[name]
       if (!instance) {
@@ -154,7 +165,6 @@ class ModuleGetter extends EventEmitter {
       }
       return instance
     }
-    if (Module.isAsync) throw new Error('Async module must be get asynchronously')
     return new Module(this._core.getter, config)
   }
 

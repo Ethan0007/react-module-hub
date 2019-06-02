@@ -13,7 +13,7 @@ class App extends Component {
         <CoreContext.Provider value={core}>
           <div className="App">
             <header className="App-header">
-              Welcome to Coreact
+              Welcome to Corex
           </header>
           </div>
         </CoreContext.Provider>

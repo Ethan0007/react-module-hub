@@ -1,7 +1,7 @@
 import Loading from './components/Loading'
 
 /**
- * Responsible to loading an async module.
+ * Responsible for loading an async module.
  */
 class Loader {
 
@@ -13,16 +13,16 @@ class Loader {
   _module = null
   // When module is instaitated
   loaded = false
-  // Holds the module instance
+  // Holds the module instance (only singleton)
   instance = null
-  // Alias for instance
+  // Alias for instance (only singleton)
   $ = null
   // Loading component
-  Loading = null
+  Loading = Loading
 
   constructor(loader, loading) {
     this._loader = loader
-    this.Loading = loading || Loading
+    if (loading) this.Loading = loading
   }
 
   /**
@@ -36,6 +36,9 @@ class Loader {
     // Loading the module
     return this._loader()
       .then(module => {
+        // Transfer singleton flag to contructor
+        module = module.default
+        module.isSingleton = this._loader.isSingleton
         this._module = module
         this._fetched = true
         return module
@@ -59,9 +62,15 @@ class Loader {
     return prom.then(Module => {
       if (this._loader.isSingleton) {
         if (!this.instance) {
-          this.instance = new Module(getter, config)
-          this.$ = this.instance
+          const instance = new Module(getter, config)
+          this.instance = instance
+          this.$ = instance
           this.loaded = true
+          // Trigger module's `start` and `ready` lifecycle
+          const prom = instance.start && instance.start(getter)
+          const ready = () => instance.ready && instance.ready(getter)
+          if (prom) prom.then(ready)
+          else ready()
         }
         return this.instance
       }

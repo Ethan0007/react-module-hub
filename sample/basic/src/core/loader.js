@@ -18,7 +18,7 @@ function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _d
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 /**
- * Responsible to loading an async module.
+ * Responsible for loading an async module.
  */
 var Loader =
 /*#__PURE__*/
@@ -27,8 +27,8 @@ function () {
   // When module is fetched
   // Holds the module constructor
   // When module is instaitated
-  // Holds the module instance
-  // Alias for instance
+  // Holds the module instance (only singleton)
+  // Alias for instance (only singleton)
   // Loading component
   function Loader(loader, loading) {
     _classCallCheck(this, Loader);
@@ -45,10 +45,10 @@ function () {
 
     _defineProperty(this, "$", null);
 
-    _defineProperty(this, "Loading", null);
+    _defineProperty(this, "Loading", _Loading["default"]);
 
     this._loader = loader;
-    this.Loading = loading || _Loading["default"];
+    if (loading) this.Loading = loading;
   }
   /**
    * Fetch the module asynchronously. This does
@@ -66,6 +66,9 @@ function () {
 
       // Loading the module
       return this._loader().then(function (module) {
+        // Transfer singleton flag to contructor
+        module = module["default"];
+        module.isSingleton = _this._loader.isSingleton;
         _this._module = module;
         _this._fetched = true;
         return module;
@@ -91,9 +94,18 @@ function () {
       return prom.then(function (Module) {
         if (_this2._loader.isSingleton) {
           if (!_this2.instance) {
-            _this2.instance = new Module(getter, config);
-            _this2.$ = _this2.instance;
-            _this2.loaded = true;
+            var instance = new Module(getter, config);
+            _this2.instance = instance;
+            _this2.$ = instance;
+            _this2.loaded = true; // Trigger module's `start` and `ready` lifecycle
+
+            var _prom = instance.start && instance.start(getter);
+
+            var ready = function ready() {
+              return instance.ready && instance.ready(getter);
+            };
+
+            if (_prom) _prom.then(ready);else ready();
           }
 
           return _this2.instance;

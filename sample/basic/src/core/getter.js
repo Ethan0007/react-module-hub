@@ -13,6 +13,8 @@ var _lodash = _interopRequireDefault(require("lodash.reduce"));
 
 var _lodash2 = _interopRequireDefault(require("lodash.get"));
 
+var _loader = _interopRequireDefault(require("./loader"));
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
 
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
@@ -42,7 +44,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
  * `start` and `ready` lifecycle.
  * 
  * This also provides event-bus feature 
- * using `EventEmittor` from node.
+ * using `EventEmitter` from node.
  * 
  */
 var ModuleGetter =
@@ -107,7 +109,7 @@ function (_EventEmitter) {
     value: function getModule(name) {
       var module = this._core._modules[name.toLowerCase()];
 
-      if (!module || module.isAsync) return null;
+      if (!module) return null;
       return this._instantiateModule(module, name);
     }
     /**
@@ -125,7 +127,7 @@ function (_EventEmitter) {
     value: function getRequiredModule(name) {
       var module = this._core._modules[name.toLowerCase()];
 
-      if (!module || module.isAsync) throw new Error("Module \"".concat(name, "\" not found"));
+      if (!module) throw new Error("Module \"".concat(name, "\" not found"));
       return this._instantiateModule(module, name);
     }
     /**
@@ -153,8 +155,9 @@ function (_EventEmitter) {
       var loader = this._core._modules[name.toLowerCase()];
 
       if (!loader) return null;
+      var config = (0, _lodash2["default"])(this._core._config.modules, name);
 
-      loader._getInstance().then(function (instance) {
+      loader._getInstance(this, config).then(function (instance) {
         if (callback) {
           if (callback instanceof _react.Component) callback.setState(function () {
             return _defineProperty({}, name, instance);
@@ -192,19 +195,27 @@ function (_EventEmitter) {
      * Create an instance of module. If singleton, will save
      * the instance to collection pool.
      * 
+     * If the module is async and is loaded, also create
+     * an instance and return it, otherwise return `null`
+     * 
      * @param {module} Module 
      * Module to create instance
      * @param {string} name 
      * Name of module
-     * @returns {instance}
-     * Instance of module 
+     * @returns {instance|null}
+     * Instance of module or `null` if not found for async
      */
 
   }, {
     key: "_instantiateModule",
     value: function _instantiateModule(Module, name) {
       var instances = this._core._instances;
-      var config = (0, _lodash2["default"])(this._core._config.modules, name);
+      var config = (0, _lodash2["default"])(this._core._config.modules, name); // Deal with async module
+
+      if (Module instanceof _loader["default"]) {
+        if (Module._fetched) Module = Module._module;else return null;
+      } // Continue creating an instance
+
 
       if (Module.isSingleton) {
         var instance = instances[name];
@@ -217,7 +228,6 @@ function (_EventEmitter) {
         return instance;
       }
 
-      if (Module.isAsync) throw new Error('Async module must be get asynchronously');
       return new Module(this._core.getter, config);
     }
     /**

@@ -70,7 +70,7 @@ exports.CoreContext = CoreContext;
 var Core =
 /*#__PURE__*/
 function () {
-  // Truw when everything is loaded
+  // True when everything is loaded and ready
   // Module getter
   // Module setter
   // Options for the framework
@@ -153,7 +153,7 @@ function () {
       for (var key in this._modules) {
         if (this._modules.hasOwnProperty(key)) {
           var mod = this._modules[key];
-          if (mod.isAsync) continue;
+          if (mod instanceof _loader["default"]) continue;
           if (mod.reducers) reducers[key] = mod.reducers;
           if (mod.screens) Object.assign(screens, mod.screens);
           if (mod.modals) Object.assign(modals, mod.modals); // Extra data to pass
@@ -186,6 +186,12 @@ function () {
     value: function init(storeCreator) {
       var _this = this;
 
+      var linkImmediateAsyncModules = function linkImmediateAsyncModules(results) {
+        results.forEach(function (module) {
+          _this.setter.addModule(module["default"]);
+        });
+      };
+
       return this._getInitialState().then(function (initState) {
         if (storeCreator && _this._reducers) {
           var store = storeCreator(_this._reducers, initState);
@@ -193,7 +199,7 @@ function () {
         }
       }).then(function () {
         return Promise.all(_this._imports);
-      }).then(function () {
+      }).then(linkImmediateAsyncModules).then(function () {
         return _this._trigger('start', _this._startups);
       }).then(function () {
         return Promise.all(_this._startups);
@@ -243,7 +249,7 @@ function () {
         var _loop = function _loop(key) {
           if (!_this2._modules.hasOwnProperty(key)) return "continue";
           var mod = _this2._modules[key];
-          if (mod.isAsync) return "continue";
+          if (mod instanceof _loader["default"]) return "continue";
 
           if (mod.persist && storage) {
             hasPersist = true;
@@ -310,7 +316,7 @@ function () {
       var _loop2 = function _loop2(key) {
         if (!_this3._modules.hasOwnProperty(key)) return "continue";
         var mod = _this3._modules[key];
-        if (mod.isAsync) return "continue";
+        if (mod instanceof _loader["default"]) return "continue";
 
         if (mod.persist) {
           if (mod.persist === true) {
@@ -365,7 +371,7 @@ function () {
       return unsubscribe;
     }
     /**
-     * Invokes a method in all modules.
+     * Invokes a method in all singleton modules.
      * 
      * @param {string} event 
      * The method name to invoke in module
@@ -379,9 +385,9 @@ function () {
     value: function _trigger(event, results) {
       var moduleConfigs = this._config.modules;
 
-      for (var key in this._modules) {
-        if (this._modules.hasOwnProperty(key) && !(this._modules[key] instanceof _loader["default"])) {
-          var instance = this.getter.getModule(key);
+      for (var key in this._instances) {
+        if (this._instances.hasOwnProperty(key)) {
+          var instance = this._instances[key];
 
           if (instance && instance[event]) {
             var res = instance[event](this.getter, moduleConfigs[key]);
