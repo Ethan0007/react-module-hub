@@ -1,3 +1,4 @@
+import { Component } from 'react'
 import EventEmitter from 'events'
 import _reduce from 'lodash.reduce'
 import _get from 'lodash.get'
@@ -14,12 +15,12 @@ import _get from 'lodash.get'
  */
 class ModuleGetter extends EventEmitter {
 
-  // Holds the hub.
-  _hub = null
+  // Holds the core.
+  _core = null
 
-  constructor(hub) {
+  constructor(core) {
     super()
-    this._hub = hub
+    this._core = core
   }
 
   /**
@@ -33,7 +34,7 @@ class ModuleGetter extends EventEmitter {
    * The config value
    */
   getConfig(pathKey, defaultValue) {
-    return this._hub.getConfig(pathKey, defaultValue)
+    return this._core.getConfig(pathKey, defaultValue)
   }
 
   /**
@@ -41,7 +42,7 @@ class ModuleGetter extends EventEmitter {
    * @returns {store}
    */
   getStore() {
-    return this._hub._store
+    return this._core._store
   }
 
   /**
@@ -56,7 +57,7 @@ class ModuleGetter extends EventEmitter {
    * The module instance or `null` if not found
    */
   getModule(name) {
-    let module = this._hub._modules[name.toLowerCase()]
+    let module = this._core._modules[name.toLowerCase()]
     if (!module || module.isAsync) return null
     return this._instantiateModule(module, name)
   }
@@ -71,7 +72,7 @@ class ModuleGetter extends EventEmitter {
    * The module instance
    */
   getRequiredModule(name) {
-    let module = this._hub._modules[name.toLowerCase()]
+    let module = this._core._modules[name.toLowerCase()]
     if (!module || module.isAsync) throw new Error(`Module "${name}" not found`)
     return this._instantiateModule(module, name)
   }
@@ -97,9 +98,16 @@ class ModuleGetter extends EventEmitter {
     // Also test for unused initial state, is it striped out
     // on createStore or not
 
-    let loader = this._hub._modules[name.toLowerCase()]
+    let loader = this._core._modules[name.toLowerCase()]
     if (!loader) return null
-    loader._getInstance().then(callback || (ins => ins))
+    loader._getInstance().then(instance => {
+      if (callback) {
+        if (callback instanceof Component)
+          callback.setState(() => ({ [name]: instance }))
+        else
+          callback(instance)
+      }
+    })
     return loader
   }
 
@@ -119,10 +127,9 @@ class ModuleGetter extends EventEmitter {
    * Loader object
    */
   getRequiredAsyncModule(name, callback) {
-    let loader = this._hub._modules[name.toLowerCase()]
+    let loader = this._core._modules[name.toLowerCase()]
     if (!loader) return Promise.reject(new Error(`Module "${name}" not found`))
-    loader._getInstance().then(callback || (ins => ins))
-    return loader
+    return this.getAsyncModule(name, callback)
   }
 
   /**
@@ -137,18 +144,18 @@ class ModuleGetter extends EventEmitter {
    * Instance of module 
    */
   _instantiateModule(Module, name) {
-    let instances = this._hub._instances
-    let config = _get(this._hub._config.modules, name)
+    let instances = this._core._instances
+    let config = _get(this._core._config.modules, name)
     if (Module.isSingleton) {
       let instance = instances[name]
       if (!instance) {
-        instance = new Module(this._hub.getter, config)
+        instance = new Module(this._core.getter, config)
         instances[name] = instance
       }
       return instance
     }
     if (Module.isAsync) throw new Error('Async module must be get asynchronously')
-    return new Module(this._hub.getter, config)
+    return new Module(this._core.getter, config)
   }
 
   /**

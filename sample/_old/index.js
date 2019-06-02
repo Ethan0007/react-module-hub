@@ -134,7 +134,7 @@ return (
 /*
 return (
   <View>
-    !Foo.instance ?
+    !Foo.loaded ?
       <Foo.Loading /> :
       <View>
         <Text>Foo.$.getFullname()</Text>

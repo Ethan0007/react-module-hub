@@ -1,31 +1,43 @@
+import Loading from './components/Loading'
+
 /**
  * Responsible to loading an async module.
  */
 class Loader {
 
-  constructor(loader) {
+  // Holds the loader function from user
+  _loader = null
+  // When module is fetched
+  _fetched = false
+  // Holds the module constructor
+  _module = null
+  // When module is instaitated
+  loaded = false
+  // Holds the module instance
+  instance = null
+  // Alias for instance
+  $ = null
+  // Loading component
+  Loading = null
+
+  constructor(loader, loading) {
     this._loader = loader
-    this._loaded = false
-    // Holds the module constructor
-    this._module = null
-    // Holds the module instance
-    this.instance = null
-    // Alias for instance
-    this.$ = null
+    this.Loading = loading || Loading
   }
 
   /**
-   * Loads the module asynchronously.
+   * Fetch the module asynchronously. This does
+   * not instantiate the module.
    * 
    * @returns {promise}
    * Passing the module constructor
    */
-  _load() {
+  _fetch() {
     // Loading the module
     return this._loader()
       .then(module => {
         this._module = module
-        this._loaded = true
+        this._fetched = true
         return module
       })
   }
@@ -41,14 +53,15 @@ class Loader {
    * Passing the module instance
    */
   _getInstance(getter, config) {
-    const prom = this._loaded
+    const prom = this._fetched
       ? Promise.resolve(this._module)
-      : this._load()
+      : this._fetch()
     return prom.then(Module => {
       if (this._loader.isSingleton) {
         if (!this.instance) {
           this.instance = new Module(getter, config)
           this.$ = this.instance
+          this.loaded = true
         }
         return this.instance
       }

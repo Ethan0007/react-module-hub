@@ -6,22 +6,23 @@ import _pick from 'lodash.pick'
 import _isEmpty from 'lodash.isempty'
 import ModuleGetter from './getter'
 import ModuleSetter from './setter'
+import Loader from './loader'
 
 /**
  * The prefix to use when saving the 
  * state to storage
  */
-const prefix = '__HUB__:'
+const prefix = '__CORE__:'
 
 /**
  * Creates a react context for HOC
  */
-const HubContext = React.createContext({})
+const CoreContext = React.createContext({})
 
 /**
- * The module hub
+ * The module core
  */
-class ReactModuleHub {
+class Core {
 
   // Truw when everything is loaded
   isReady = false
@@ -37,6 +38,8 @@ class ReactModuleHub {
   _store = null
   // Holds the module constructors
   _modules = {}
+  // Holds the singleton instances
+  _instances = {}
   // Promises returned by start lifecycle,
   // will be cleared on ready
   _startups = []
@@ -104,7 +107,7 @@ class ReactModuleHub {
   }
 
   /**
-   * Initialize hub and loads all modules. It reads initials
+   * Initialize core and loads all modules. It reads initials
    * state, calls the store creator function and invokes
    * "start" & "ready" to all added modules.
    * 
@@ -270,7 +273,8 @@ class ReactModuleHub {
   _trigger(event, results) {
     let { modules: moduleConfigs } = this._config
     for (let key in this._modules) {
-      if (this._modules.hasOwnProperty(key)) {
+      if (this._modules.hasOwnProperty(key)
+        && !(this._modules[key] instanceof Loader)) {
         let instance = this.getter.getModule(key)
         if (instance && instance[event]) {
           let res = instance[event](this.getter, moduleConfigs[key])
@@ -283,16 +287,39 @@ class ReactModuleHub {
 }
 
 /**
- * An HOC to inject modules to the component
+ * To get a required or non-required module.
+ * 
+ * @param {core} core 
+ * @param {array} modules 
+ * @param {boolean} isRequired 
+ * @returns {object}
  */
-ReactModuleHub.withModules = function (ChildComponent, ...modules) {
+function getModules(core, modules, isRequired) {
+  return isRequired ?
+    core.getter._getRequiredModules(modules) :
+    core.getter._getModules(modules)
+}
+
+/**
+ * Create a component that wraps the child with modules 
+ * in the props.
+ * 
+ * @param {component} ChildComponent 
+ * Child component for higher component
+ * @param {array} modules 
+ * Array of string module names
+ * @param {boolean} isRequired 
+ * @returns {component}
+ * The HOC component
+ */
+function createComponentWithModules(ChildComponent, modules, isRequired) {
   return class extends React.Component {
     render() {
-      return React.createElement(HubContext.Consumer, null, hub => {
-        const store = hub.getter.getStore()
+      return React.createElement(CoreContext.Consumer, null, core => {
+        const store = core.getter.getStore()
         return React.createElement(ChildComponent, {
-          hub: hub.getter,
-          modules: hub.getter._getModules(modules),
+          core: core.getter,
+          modules: getModules(core, modules, isRequired),
           state: store && _pick(store.getState(), modules),
           ...this.props
         })
@@ -302,22 +329,17 @@ ReactModuleHub.withModules = function (ChildComponent, ...modules) {
 }
 
 /**
+ * An HOC to inject modules to the component
+ */
+export function withModules(ChildComponent, ...modules) {
+  return createComponentWithModules(ChildComponent, modules)
+}
+
+/**
  * An HOC to inject required modules to the component
  */
-ReactModuleHub.withRequiredModules = function (ChildComponent, ...modules) {
-  return class extends React.Component {
-    render() {
-      return React.createElement(HubContext.Consumer, null, hub => {
-        const store = hub.getter.getStore()
-        return React.createElement(ChildComponent, {
-          hub: hub.getter,
-          modules: hub.getter._getRequiredModules(modules),
-          state: store && _pick(store.getState(), modules),
-          ...this.props
-        })
-      })
-    }
-  }
+export function withRequiredModules(ChildComponent, ...modules) {
+  return createComponentWithModules(ChildComponent, modules, true)
 }
 
 /**
@@ -335,15 +357,13 @@ function createModule(name, module, options = {}) {
   Object.assign(module, options)
   return module
 }
-ReactModuleHub.createModule = createModule
-ReactModuleHub.asModule = createModule
-
-/**
- * Expose the hub context
- */
-ReactModuleHub.HubContext = HubContext
 
 /**
  * Export
  */
-export default ReactModuleHub
+export default Core
+export {
+  CoreContext,
+  createModule,
+  createModule as asModule
+}
