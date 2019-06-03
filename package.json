@@ -1,5 +1,5 @@
 {
-  "name": "corex",
+  "name": "rengine",
   "version": "0.1.0",
   "description": "A micro framework for building modular react project",
   "main": "src/core.js",
