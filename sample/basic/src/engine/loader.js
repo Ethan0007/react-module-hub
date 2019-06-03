@@ -7,6 +7,8 @@ exports["default"] = void 0;
 
 var _Loading = _interopRequireDefault(require("./components/Loading"));
 
+var _lodash = _interopRequireDefault(require("lodash.get"));
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -30,8 +32,12 @@ function () {
   // Holds the module instance (only singleton)
   // Alias for instance (only singleton)
   // Loading component
-  function Loader(loader, loading) {
+  // Render content component
+  // Main component that shows loading or the content
+  function Loader(engine, loader) {
     _classCallCheck(this, Loader);
+
+    _defineProperty(this, "_engine", null);
 
     _defineProperty(this, "_loader", null);
 
@@ -47,8 +53,13 @@ function () {
 
     _defineProperty(this, "Loading", _Loading["default"]);
 
+    _defineProperty(this, "Content", null);
+
+    _defineProperty(this, "View", null);
+
+    this._engine = engine;
     this._loader = loader;
-    if (loading) this.Loading = loading;
+    if (engine._options.loading) this.Loading = engine._options.loading;
   }
   /**
    * Fetch the module asynchronously. This does
@@ -66,16 +77,17 @@ function () {
 
       // Loading the module
       return this._loader().then(function (module) {
-        // Transfer singleton flag to contructor
+        // Transfer flags loader to contructor
         module = module["default"];
         module.isSingleton = _this._loader.isSingleton;
+        module.module = _this._loader.module;
         _this._module = module;
         _this._fetched = true;
         return module;
       });
     }
     /**
-     * Creates an instance for async module.
+     * Load and creates an instance for async module.
      * 
      * @param {getter} getter 
      * Module getter to pass to module
@@ -86,12 +98,15 @@ function () {
      */
 
   }, {
-    key: "_getInstance",
-    value: function _getInstance(getter, config) {
+    key: "load",
+    value: function load() {
       var _this2 = this;
 
       var prom = this._fetched ? Promise.resolve(this._module) : this._fetch();
       return prom.then(function (Module) {
+        var getter = _this2._engine.getter;
+        var config = (0, _lodash["default"])(_this2._engine._config.modules, Module.module);
+
         if (_this2._loader.isSingleton) {
           if (!_this2.instance) {
             var instance = new Module(getter, config);

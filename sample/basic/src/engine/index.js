@@ -20,6 +20,8 @@ var _lodash3 = _interopRequireDefault(require("lodash.pick"));
 
 var _lodash4 = _interopRequireDefault(require("lodash.isempty"));
 
+var _lodash5 = _interopRequireDefault(require("lodash.map"));
+
 var _getter = _interopRequireDefault(require("./getter"));
 
 var _setter = _interopRequireDefault(require("./setter"));
@@ -404,22 +406,25 @@ function () {
  * To get a required or non-required module.
  * 
  * @param {engine} engine 
- * @param {array} modules 
+ * @param {array} moduleNames 
  * @param {boolean} isRequired 
  * @returns {object}
  */
 
 
-function getModules(engine, modules, isRequired) {
-  return isRequired ? engine.getter._getRequiredModules(modules) : engine.getter._getModules(modules);
+function getModules(engine, moduleNames, isRequired) {
+  return isRequired ? engine.getter._getRequiredModules(moduleNames) : engine.getter._getModules(moduleNames);
 }
 /**
  * Create a component that wraps the child with modules 
  * in the props.
  * 
+ * All async module will provide `Loader` and sync ones
+ * will provide instance of the module
+ * 
  * @param {component} ChildComponent 
  * Child component for higher component
- * @param {array} modules 
+ * @param {array} moduleNames 
  * Array of string module names
  * @param {boolean} isRequired 
  * @returns {component}
@@ -427,7 +432,7 @@ function getModules(engine, modules, isRequired) {
  */
 
 
-function createComponentWithModules(ChildComponent, modules, isRequired) {
+function createComponentWithModules(ChildComponent, moduleNames, isRequired) {
   return (
     /*#__PURE__*/
     function (_React$Component) {
@@ -446,10 +451,23 @@ function createComponentWithModules(ChildComponent, modules, isRequired) {
 
           return _react["default"].createElement(EngineContext.Consumer, null, function (engine) {
             var store = engine.getter.getStore();
+            var modules = getModules(engine, moduleNames, isRequired);
+            var toLoad = [];
+
+            for (var key in modules) {
+              if (modules.hasOwnProperty(key) && modules[key] instanceof _loader["default"]) {
+                var loader = modules[key];
+                if (!loader.loaded) toLoad.push(loader.load());
+              }
+            }
+
+            if (toLoad.length) Promise.all(toLoad).then(function () {
+              return _this5.forceUpdate();
+            });
             return _react["default"].createElement(ChildComponent, _objectSpread({
               engine: engine.getter,
-              modules: getModules(engine, modules, isRequired),
-              state: store && (0, _lodash3["default"])(store.getState(), modules)
+              modules: modules,
+              state: store && (0, _lodash3["default"])(store.getState(), moduleNames)
             }, _this5.props));
           });
         }
@@ -465,11 +483,11 @@ function createComponentWithModules(ChildComponent, modules, isRequired) {
 
 
 function withModules(ChildComponent) {
-  for (var _len = arguments.length, modules = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
-    modules[_key - 1] = arguments[_key];
+  for (var _len = arguments.length, moduleNames = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+    moduleNames[_key - 1] = arguments[_key];
   }
 
-  return createComponentWithModules(ChildComponent, modules);
+  return createComponentWithModules(ChildComponent, moduleNames);
 }
 /**
  * An HOC to inject required modules to the component
@@ -477,11 +495,11 @@ function withModules(ChildComponent) {
 
 
 function withRequiredModules(ChildComponent) {
-  for (var _len2 = arguments.length, modules = new Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
-    modules[_key2 - 1] = arguments[_key2];
+  for (var _len2 = arguments.length, moduleNames = new Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
+    moduleNames[_key2 - 1] = arguments[_key2];
   }
 
-  return createComponentWithModules(ChildComponent, modules, true);
+  return createComponentWithModules(ChildComponent, moduleNames, true);
 }
 /**
  * Helper function to create a module.

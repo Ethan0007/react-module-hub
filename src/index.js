@@ -4,6 +4,7 @@ import _get from 'lodash.get'
 import _set from 'lodash.set'
 import _pick from 'lodash.pick'
 import _isEmpty from 'lodash.isempty'
+import _map from 'lodash.map'
 import ModuleGetter from './getter'
 import ModuleSetter from './setter'
 import Loader from './loader'
@@ -295,37 +296,50 @@ class Engine {
  * To get a required or non-required module.
  * 
  * @param {engine} engine 
- * @param {array} modules 
+ * @param {array} moduleNames 
  * @param {boolean} isRequired 
  * @returns {object}
  */
-function getModules(engine, modules, isRequired) {
+function getModules(engine, moduleNames, isRequired) {
   return isRequired ?
-    engine.getter._getRequiredModules(modules) :
-    engine.getter._getModules(modules)
+    engine.getter._getRequiredModules(moduleNames) :
+    engine.getter._getModules(moduleNames)
 }
 
 /**
  * Create a component that wraps the child with modules 
  * in the props.
  * 
+ * All async module will provide `Loader` and sync ones
+ * will provide instance of the module
+ * 
  * @param {component} ChildComponent 
  * Child component for higher component
- * @param {array} modules 
+ * @param {array} moduleNames 
  * Array of string module names
  * @param {boolean} isRequired 
  * @returns {component}
  * The HOC component
  */
-function createComponentWithModules(ChildComponent, modules, isRequired) {
+function createComponentWithModules(ChildComponent, moduleNames, isRequired) {
   return class extends React.Component {
     render() {
       return React.createElement(EngineContext.Consumer, null, engine => {
         const store = engine.getter.getStore()
+        let modules = getModules(engine, moduleNames, isRequired)
+        let toLoad = []
+        for (const key in modules) {
+          if (modules.hasOwnProperty(key) && modules[key] instanceof Loader) {
+            const loader = modules[key]
+            if (!loader.loaded) toLoad.push(loader.load())
+          }
+        }
+        if (toLoad.length)
+          Promise.all(toLoad).then(() => this.forceUpdate())
         return React.createElement(ChildComponent, {
           engine: engine.getter,
-          modules: getModules(engine, modules, isRequired),
-          state: store && _pick(store.getState(), modules),
+          modules,
+          state: store && _pick(store.getState(), moduleNames),
           ...this.props
         })
       })
@@ -336,15 +350,15 @@ function createComponentWithModules(ChildComponent, modules, isRequired) {
 /**
  * An HOC to inject modules to the component
  */
-export function withModules(ChildComponent, ...modules) {
-  return createComponentWithModules(ChildComponent, modules)
+export function withModules(ChildComponent, ...moduleNames) {
+  return createComponentWithModules(ChildComponent, moduleNames)
 }
 
 /**
  * An HOC to inject required modules to the component
  */
-export function withRequiredModules(ChildComponent, ...modules) {
-  return createComponentWithModules(ChildComponent, modules, true)
+export function withRequiredModules(ChildComponent, ...moduleNames) {
+  return createComponentWithModules(ChildComponent, moduleNames, true)
 }
 
 /**

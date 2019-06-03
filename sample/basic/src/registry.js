@@ -1,6 +1,10 @@
 import dashboard from './modules/dashboard'
 import note from './modules/note'
 
+/**
+ * This is where you register all your modules
+ */
+
 export default engine => {
 
   // SYNC MODULES
@@ -10,13 +14,15 @@ export default engine => {
 
   // ON-DEMAND ASYNC MODULES
   // Modules that asynchronousely loads on demand
-  engine.addAsyncModule(() => import('./modules/settings'), 'settings')
+  engine.addModule(() => import('./modules/user'), 'user')
 
   // STARTUP ASYNC MODULES
-  // Modules that asynchronousely loads on startup
-  // Usually don't need this, you can sync load instead 
+  // Modules that asynchronousely loads on startup but
+  // engine will treat it as synchronous module.
+  // Usually you don't need this, you can synchronously 
+  // load it instead, like above
   return [
-    import('./modules/user')
+    import('./modules/settings')
   ]
 
   // NOTES: 

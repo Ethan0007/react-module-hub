@@ -1,6 +1,5 @@
 import { Component } from 'react'
 import EventEmitter from 'events'
-import _reduce from 'lodash.reduce'
 import _get from 'lodash.get'
 import Loader from './loader'
 
@@ -102,7 +101,7 @@ class ModuleGetter extends EventEmitter {
     let loader = this._engine._modules[name.toLowerCase()]
     if (!loader) return null
     let config = _get(this._engine._config.modules, name)
-    loader._getInstance(this, config).then(instance => {
+    loader.load(this, config).then(instance => {
       if (callback) {
         if (callback instanceof Component)
           callback.setState(() => ({ [name]: instance }))
@@ -138,24 +137,20 @@ class ModuleGetter extends EventEmitter {
    * Create an instance of module. If singleton, will save
    * the instance to collection pool.
    * 
-   * If the module is async and is loaded, also create
-   * an instance and return it, otherwise return `null`
+   * If the module is async, return `Loader`
    * 
    * @param {module} Module 
    * Module to create instance
    * @param {string} name 
    * Name of module
-   * @returns {instance|null}
-   * Instance of module or `null` if not found for async
+   * @returns {instance|loader}
+   * Instance of module or `Loader` for async
    */
   _instantiateModule(Module, name) {
     let instances = this._engine._instances
     let config = _get(this._engine._config.modules, name)
     // Deal with async module
-    if (Module instanceof Loader) {
-      if (Module._fetched) Module = Module._module
-      else return null
-    }
+    if (Module instanceof Loader) return Module
     // Continue creating an instance
     if (Module.isSingleton) {
       let instance = instances[name]
@@ -176,7 +171,7 @@ class ModuleGetter extends EventEmitter {
    * Array of module names to get
    */
   _getModules(names) {
-    return _reduce(names, (o, k) => {
+    return names.reduce((o, k) => {
       o[k] = this.getModule(k)
       return o
     }, {})
@@ -190,7 +185,7 @@ class ModuleGetter extends EventEmitter {
    * Array of module names to get
    */
   _getRequiredModules(names) {
-    return _reduce(names, (o, k) => {
+    return names.reduce((o, k) => {
       o[k] = this.getRequiredModule(k)
       return o
     }, {})

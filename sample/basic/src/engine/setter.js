@@ -65,9 +65,15 @@ function () {
   }, {
     key: "addScopeModule",
     value: function addScopeModule(module, name) {
-      this._checkModule(module);
+      // If no module name, treat it as async module
+      if (!module.module) {
+        this._addScopeAsyncModule(module, name);
+
+        return;
+      }
 
       name = (name || module.module).toLowerCase();
+      module.module = name;
       if (this._engine._modules[name]) throw new Error("Module \"".concat(name, "\" already registered"));
       this._engine._modules[name] = module;
     }
@@ -87,7 +93,12 @@ function () {
   }, {
     key: "addModule",
     value: function addModule(module, name) {
-      this._checkModule(module);
+      // If no module name, treat it as async module
+      if (!module.module) {
+        this._addAsyncModule(module, name);
+
+        return;
+      }
 
       name = (name || module.module).toLowerCase();
       this.addScopeModule(module, name);
@@ -101,7 +112,7 @@ function () {
      * The `module` argument should be `() => import('./to/module')`
      * to enable dynamic emport.
      * 
-     * @param {function} module 
+     * @param {function} loader 
      * The loader function
      * @param {string} name 
      * The name of the module
@@ -109,13 +120,15 @@ function () {
      */
 
   }, {
-    key: "addScopeAsyncModule",
-    value: function addScopeAsyncModule(module, name) {
+    key: "_addScopeAsyncModule",
+    value: function _addScopeAsyncModule(loader, name) {
       // Directly add it to collection, but name 
       // must be explicitly provided 
-      if (!name) throw new Error('Async module must explicitly provide a name'); // Mark module as async and convert it to loader object
+      if (!name) throw new Error('Async module must explicitly provide a name'); // Attach the name to loader
 
-      this._engine._modules[name.toLowerCase()] = new _loader["default"](module, this._engine._options.loading);
+      loader.module = name.toLowerCase(); // Convert to real loader object
+
+      this._engine._modules[loader.module] = new _loader["default"](this._engine, loader);
     }
     /**
      * Adds an async singleton module to engine.
@@ -123,7 +136,7 @@ function () {
      * The `module` argument should be `() => import('./to/module')`
      * to enable dynamic emport.
      * 
-     * @param {function} module 
+     * @param {function} loader 
      * The loader function
      * @param {string} name 
      * The name of the module
@@ -131,23 +144,11 @@ function () {
      */
 
   }, {
-    key: "addAsyncModule",
-    value: function addAsyncModule(module, name) {
-      module.isSingleton = true;
-      this.addScopeAsyncModule(module, name);
-    }
-    /**
-     * Validate a module.
-     * 
-     * @param {module} module 
-     * The module to check
-     * @returns {undefined}
-     */
+    key: "_addAsyncModule",
+    value: function _addAsyncModule(loader, name) {
+      loader.isSingleton = true;
 
-  }, {
-    key: "_checkModule",
-    value: function _checkModule(module) {
-      if (!module.module) throw new Error('Not a module. Required static property \'module\' with string value as the name');
+      this._addScopeAsyncModule(loader, name);
     }
   }]);
 

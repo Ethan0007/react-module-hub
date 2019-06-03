@@ -40,8 +40,13 @@ class ModuleSetter {
    * @returns {undefined}
    */
   addScopeModule(module, name) {
-    this._checkModule(module)
+    // If no module name, treat it as async module
+    if (!module.module) {
+      this._addScopeAsyncModule(module, name)
+      return
+    }
     name = (name || module.module).toLowerCase()
+    module.module = name
     if (this._engine._modules[name])
       throw new Error(`Module "${name}" already registered`)
     this._engine._modules[name] = module
@@ -60,7 +65,11 @@ class ModuleSetter {
    * @returns {undefined}
    */
   addModule(module, name) {
-    this._checkModule(module)
+    // If no module name, treat it as async module
+    if (!module.module) {
+      this._addAsyncModule(module, name)
+      return
+    }
     name = (name || module.module).toLowerCase()
     this.addScopeModule(module, name)
     module.isSingleton = true
@@ -73,20 +82,22 @@ class ModuleSetter {
    * The `module` argument should be `() => import('./to/module')`
    * to enable dynamic emport.
    * 
-   * @param {function} module 
+   * @param {function} loader 
    * The loader function
    * @param {string} name 
    * The name of the module
    * @returns {undefined}
    */
-  addScopeAsyncModule(module, name) {
+  _addScopeAsyncModule(loader, name) {
     // Directly add it to collection, but name 
     // must be explicitly provided 
     if (!name) throw new Error('Async module must explicitly provide a name')
-    // Mark module as async and convert it to loader object
-    this._engine._modules[name.toLowerCase()] = new Loader(
-      module,
-      this._engine._options.loading
+    // Attach the name to loader
+    loader.module = name.toLowerCase()
+    // Convert to real loader object
+    this._engine._modules[loader.module] = new Loader(
+      this._engine,
+      loader
     )
   }
 
@@ -96,27 +107,15 @@ class ModuleSetter {
    * The `module` argument should be `() => import('./to/module')`
    * to enable dynamic emport.
    * 
-   * @param {function} module 
+   * @param {function} loader 
    * The loader function
    * @param {string} name 
    * The name of the module
    * @returns {undefined}
    */
-  addAsyncModule(module, name) {
-    module.isSingleton = true
-    this.addScopeAsyncModule(module, name)
-  }
-
-  /**
-   * Validate a module.
-   * 
-   * @param {module} module 
-   * The module to check
-   * @returns {undefined}
-   */
-  _checkModule(module) {
-    if (!module.module)
-      throw new Error('Not a module. Required static property \'module\' with string value as the name')
+  _addAsyncModule(loader, name) {
+    loader.isSingleton = true
+    this._addScopeAsyncModule(loader, name)
   }
 
 }

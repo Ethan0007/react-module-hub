@@ -1,10 +1,12 @@
 import Loading from './components/Loading'
+import _get from 'lodash.get'
 
 /**
  * Responsible for loading an async module.
  */
 class Loader {
 
+  _engine = null
   // Holds the loader function from user
   _loader = null
   // When module is fetched
@@ -19,10 +21,16 @@ class Loader {
   $ = null
   // Loading component
   Loading = Loading
+  // Render content component
+  Content = null
+  // Main component that shows loading or the content
+  View = null
 
-  constructor(loader, loading) {
+  constructor(engine, loader) {
+    this._engine = engine
     this._loader = loader
-    if (loading) this.Loading = loading
+    if (engine._options.loading)
+      this.Loading = engine._options.loading
   }
 
   /**
@@ -36,9 +44,10 @@ class Loader {
     // Loading the module
     return this._loader()
       .then(module => {
-        // Transfer singleton flag to contructor
+        // Transfer flags loader to contructor
         module = module.default
         module.isSingleton = this._loader.isSingleton
+        module.module = this._loader.module
         this._module = module
         this._fetched = true
         return module
@@ -46,7 +55,7 @@ class Loader {
   }
 
   /**
-   * Creates an instance for async module.
+   * Load and creates an instance for async module.
    * 
    * @param {getter} getter 
    * Module getter to pass to module
@@ -55,11 +64,13 @@ class Loader {
    * @returns {promise}
    * Passing the module instance
    */
-  _getInstance(getter, config) {
+  load() {
     const prom = this._fetched
       ? Promise.resolve(this._module)
       : this._fetch()
     return prom.then(Module => {
+      const getter = this._engine.getter
+      const config = _get(this._engine._config.modules, Module.module)
       if (this._loader.isSingleton) {
         if (!this.instance) {
           const instance = new Module(getter, config)

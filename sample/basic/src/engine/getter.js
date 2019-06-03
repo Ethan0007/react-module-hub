@@ -9,9 +9,7 @@ var _react = require("react");
 
 var _events = _interopRequireDefault(require("events"));
 
-var _lodash = _interopRequireDefault(require("lodash.reduce"));
-
-var _lodash2 = _interopRequireDefault(require("lodash.get"));
+var _lodash = _interopRequireDefault(require("lodash.get"));
 
 var _loader = _interopRequireDefault(require("./loader"));
 
@@ -155,16 +153,14 @@ function (_EventEmitter) {
       var loader = this._engine._modules[name.toLowerCase()];
 
       if (!loader) return null;
-      var config = (0, _lodash2["default"])(this._engine._config.modules, name);
-
-      loader._getInstance(this, config).then(function (instance) {
+      var config = (0, _lodash["default"])(this._engine._config.modules, name);
+      loader.load(this, config).then(function (instance) {
         if (callback) {
           if (callback instanceof _react.Component) callback.setState(function () {
             return _defineProperty({}, name, instance);
           });else callback(instance);
         }
       });
-
       return loader;
     }
     /**
@@ -195,27 +191,23 @@ function (_EventEmitter) {
      * Create an instance of module. If singleton, will save
      * the instance to collection pool.
      * 
-     * If the module is async and is loaded, also create
-     * an instance and return it, otherwise return `null`
+     * If the module is async, return `Loader`
      * 
      * @param {module} Module 
      * Module to create instance
      * @param {string} name 
      * Name of module
-     * @returns {instance|null}
-     * Instance of module or `null` if not found for async
+     * @returns {instance|loader}
+     * Instance of module or `Loader` for async
      */
 
   }, {
     key: "_instantiateModule",
     value: function _instantiateModule(Module, name) {
       var instances = this._engine._instances;
-      var config = (0, _lodash2["default"])(this._engine._config.modules, name); // Deal with async module
+      var config = (0, _lodash["default"])(this._engine._config.modules, name); // Deal with async module
 
-      if (Module instanceof _loader["default"]) {
-        if (Module._fetched) Module = Module._module;else return null;
-      } // Continue creating an instance
-
+      if (Module instanceof _loader["default"]) return Module; // Continue creating an instance
 
       if (Module.isSingleton) {
         var instance = instances[name];
@@ -243,7 +235,7 @@ function (_EventEmitter) {
     value: function _getModules(names) {
       var _this2 = this;
 
-      return (0, _lodash["default"])(names, function (o, k) {
+      return names.reduce(function (o, k) {
         o[k] = _this2.getModule(k);
         return o;
       }, {});
@@ -261,7 +253,7 @@ function (_EventEmitter) {
     value: function _getRequiredModules(names) {
       var _this3 = this;
 
-      return (0, _lodash["default"])(names, function (o, k) {
+      return names.reduce(function (o, k) {
         o[k] = _this3.getRequiredModule(k);
         return o;
       }, {});

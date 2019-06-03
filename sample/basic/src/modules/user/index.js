@@ -1,7 +1,13 @@
+import React from 'react'
 
 export default class {
   static module = 'user'
-  sayHello() {
-    return console.log('Hello I\'m A User')
+  constructor(eng, config) {
+    console.log("A", config);
+  }
+  render() {
+    return (
+      <div>User</div>
+    )
   }
 }
