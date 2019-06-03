@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component } from 'react'
 import { CoreContext } from './core'
 
 class App extends Component {
@@ -22,5 +22,5 @@ class App extends Component {
 }
 
 export default core => {
-  return <App core={core} />;
-};
+  return <App core={core} />
+}

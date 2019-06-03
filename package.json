@@ -1,7 +1,7 @@
 {
-  "name": "coreact",
-  "version": "2.1.2",
-  "description": "A simple framework for modular react project",
+  "name": "corex",
+  "version": "0.1.0",
+  "description": "A micro framework for building modular react project",
   "main": "src/core.js",
   "scripts": {
     "babel": "babel src --watch --out-dir sample/basic/src/core",
