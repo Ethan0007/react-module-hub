@@ -19,11 +19,11 @@
   "rules": {
     "quotes": [
       "error",
-      "double"
+      "single"
     ],
     "semi": [
       "error",
-      "always"
+      "never"
     ]
   }
 }
