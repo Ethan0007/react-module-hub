@@ -1,4 +1,3 @@
-import { Component } from 'react'
 import EventEmitter from 'events'
 import _get from 'lodash.get'
 import Loader from './loader'
@@ -51,10 +50,13 @@ class ModuleGetter extends EventEmitter {
    * instance in the collection pool. instead of
    * creating new one.
    * 
+   * For async modules, this will return `Loader`
+   * 
    * @param {object} name 
    * The name of the module to get
-   * @returns {module|null}
-   * The module instance or `null` if not found
+   * @returns {module|loader|null}
+   * The module instance, or null if not found, 
+   * or `Loader` for async
    */
   getModule(name) {
     let module = this._engine._modules[name.toLowerCase()]
@@ -68,69 +70,13 @@ class ModuleGetter extends EventEmitter {
    * 
    * @param {string} name 
    * The name of the module to get
-   * @returns {module}
+   * @returns {module|loader}
    * The module instance
    */
   getRequiredModule(name) {
     let module = this._engine._modules[name.toLowerCase()]
     if (!module) throw new Error(`Module "${name}" not found`)
     return this._instantiateModule(module, name)
-  }
-
-  /**
-   * Returns a loader object that loads the module
-   * asynchronously. When done, invokes the callback
-   * passing the instance of the module.
-   * 
-   * @param {string} name 
-   * Name of module to get
-   * @param {function} callback 
-   * Function to call when loading is complete
-   * and pass the instance of the module
-   * @returns {loader|null}
-   * Loader object or null if not registered
-   */
-  getAsyncModule(name, callback) {
-
-    // TODO: 
-    // If module is async and contains reducer,
-    // we need to add it to existing store.
-    // Also test for unused initial state, is it striped out
-    // on createStore or not
-
-    let loader = this._engine._modules[name.toLowerCase()]
-    if (!loader) return null
-    let config = _get(this._engine._config.modules, name)
-    loader.load(this, config).then(instance => {
-      if (callback) {
-        if (callback instanceof Component)
-          callback.setState(() => ({ [name]: instance }))
-        else
-          callback(instance)
-      }
-    })
-    return loader
-  }
-
-  /**
-   * Returns a loader object that loads the module
-   * asynchronously. When done, invokes the callback
-   * passing the instance of the module.
-   * 
-   * Throws as `error` if module not registered.
-   * 
-   * @param {stringh} name 
-   * Name of module to get
-   * @param {function} callback 
-   * Function to call when loading is complete
-   * and pass the instance of the module
-   * @returns {loader}
-   * Loader object
-   */
-  getRequiredAsyncModule(name, callback) {
-    let loader = this._engine._modules[name.toLowerCase()]
-    if (!loader) return Promise.reject(new Error(`Module "${name}" not found`))
-    return this.getAsyncModule(name, callback)
   }
 
   /**

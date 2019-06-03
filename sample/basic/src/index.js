@@ -13,13 +13,7 @@ import App from './App'
 import registry from './registry'
 
 // Create instance of you engine.
-const engine = new Engine({
-  modules: {
-    user: {
-      foo: 'bar'
-    }
-  }
-})
+const engine = new Engine()
 
 // Wrap your App component with `start` methods and pass the `registry`
 ReactDOM.render(

@@ -13,7 +13,8 @@ export default engine => {
   engine.addModule(note)
 
   // ON-DEMAND ASYNC MODULES
-  // Modules that asynchronousely loads on demand
+  // Modules that asynchronousely loads on demand,
+  // This will also enable code-splitting
   engine.addModule(() => import('./modules/user'), 'user')
 
   // STARTUP ASYNC MODULES

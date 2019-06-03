@@ -13,7 +13,7 @@ class Home extends Component {
     return (
       <div id="home">
         <h2>Home</h2>
-        <p>{this.user.loaded ? 'Loaded' : 'Not Loaded'}</p>
+        <p>{this.user.loaded ? this.user.$.name : 'Not Loaded'}</p>
       </div>
     )
   }
