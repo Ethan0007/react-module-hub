@@ -1,5 +1,5 @@
 import React, { Component } from 'react'
-import { CoreContext } from './core'
+import { EngineContext } from './engine'
 
 class App extends Component {
   constructor(props) {
@@ -10,13 +10,13 @@ class App extends Component {
     const { core } = this.props
     return (
       !core.isReady ? null :
-        <CoreContext.Provider value={core}>
+        <EngineContext.Provider value={core}>
           <div className="App">
             <header className="App-header">
               Welcome to Corex
           </header>
           </div>
-        </CoreContext.Provider>
+        </EngineContext.Provider>
     )
   }
 }

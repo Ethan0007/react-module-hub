@@ -1,14 +1,14 @@
 import ReactDOM from 'react-dom'
 import * as serviceWorker from './serviceWorker'
 
-import Core from './core'
+import Engine from './engine'
 import registrar from './registrar'
 import App from './App'
 
-const core = new Core()
+const engine = new Engine()
 
 ReactDOM.render(
-  core.start(App, registrar),
+  engine.start(App, registrar),
   document.getElementById('root')
 )
 

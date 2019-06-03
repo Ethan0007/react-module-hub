@@ -12,7 +12,7 @@ import Loader from './loader'
  * The prefix to use when saving the 
  * state to storage
  */
-const prefix = '__RENG__:'
+const prefix = '__RNGN__:'
 
 /**
  * Creates a react context for HOC
@@ -368,7 +368,7 @@ function createModule(name, module, options = {}) {
  */
 export default Engine
 export {
-  EngineContext as engineContext,
+  EngineContext,
   createModule,
   createModule as asModule
 }

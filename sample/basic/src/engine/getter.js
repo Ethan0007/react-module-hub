@@ -52,17 +52,17 @@ var ModuleGetter =
 function (_EventEmitter) {
   _inherits(ModuleGetter, _EventEmitter);
 
-  // Holds the core.
-  function ModuleGetter(core) {
+  // Holds the engine.
+  function ModuleGetter(engine) {
     var _this;
 
     _classCallCheck(this, ModuleGetter);
 
     _this = _possibleConstructorReturn(this, _getPrototypeOf(ModuleGetter).call(this));
 
-    _defineProperty(_assertThisInitialized(_this), "_core", null);
+    _defineProperty(_assertThisInitialized(_this), "_engine", null);
 
-    _this._core = core;
+    _this._engine = engine;
     return _this;
   }
   /**
@@ -80,7 +80,7 @@ function (_EventEmitter) {
   _createClass(ModuleGetter, [{
     key: "getConfig",
     value: function getConfig(pathKey, defaultValue) {
-      return this._core.getConfig(pathKey, defaultValue);
+      return this._engine.getConfig(pathKey, defaultValue);
     }
     /**
      * Returns the global store.
@@ -90,7 +90,7 @@ function (_EventEmitter) {
   }, {
     key: "getStore",
     value: function getStore() {
-      return this._core._store;
+      return this._engine._store;
     }
     /**
      * Returns an instance of the module. If the module
@@ -107,7 +107,7 @@ function (_EventEmitter) {
   }, {
     key: "getModule",
     value: function getModule(name) {
-      var module = this._core._modules[name.toLowerCase()];
+      var module = this._engine._modules[name.toLowerCase()];
 
       if (!module) return null;
       return this._instantiateModule(module, name);
@@ -125,7 +125,7 @@ function (_EventEmitter) {
   }, {
     key: "getRequiredModule",
     value: function getRequiredModule(name) {
-      var module = this._core._modules[name.toLowerCase()];
+      var module = this._engine._modules[name.toLowerCase()];
 
       if (!module) throw new Error("Module \"".concat(name, "\" not found"));
       return this._instantiateModule(module, name);
@@ -152,10 +152,10 @@ function (_EventEmitter) {
       // we need to add it to existing store.
       // Also test for unused initial state, is it striped out
       // on createStore or not
-      var loader = this._core._modules[name.toLowerCase()];
+      var loader = this._engine._modules[name.toLowerCase()];
 
       if (!loader) return null;
-      var config = (0, _lodash2["default"])(this._core._config.modules, name);
+      var config = (0, _lodash2["default"])(this._engine._config.modules, name);
 
       loader._getInstance(this, config).then(function (instance) {
         if (callback) {
@@ -186,7 +186,7 @@ function (_EventEmitter) {
   }, {
     key: "getRequiredAsyncModule",
     value: function getRequiredAsyncModule(name, callback) {
-      var loader = this._core._modules[name.toLowerCase()];
+      var loader = this._engine._modules[name.toLowerCase()];
 
       if (!loader) return Promise.reject(new Error("Module \"".concat(name, "\" not found")));
       return this.getAsyncModule(name, callback);
@@ -209,8 +209,8 @@ function (_EventEmitter) {
   }, {
     key: "_instantiateModule",
     value: function _instantiateModule(Module, name) {
-      var instances = this._core._instances;
-      var config = (0, _lodash2["default"])(this._core._config.modules, name); // Deal with async module
+      var instances = this._engine._instances;
+      var config = (0, _lodash2["default"])(this._engine._config.modules, name); // Deal with async module
 
       if (Module instanceof _loader["default"]) {
         if (Module._fetched) Module = Module._module;else return null;
@@ -221,14 +221,14 @@ function (_EventEmitter) {
         var instance = instances[name];
 
         if (!instance) {
-          instance = new Module(this._core.getter, config);
+          instance = new Module(this._engine.getter, config);
           instances[name] = instance;
         }
 
         return instance;
       }
 
-      return new Module(this._core.getter, config);
+      return new Module(this._engine.getter, config);
     }
     /**
      * Returns multiple modules at once.

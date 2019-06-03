@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", {
 exports.withModules = withModules;
 exports.withRequiredModules = withRequiredModules;
 exports.asModule = exports.createModule = createModule;
-exports.CoreContext = exports["default"] = void 0;
+exports.EngineContext = exports["default"] = void 0;
 
 var _react = _interopRequireDefault(require("react"));
 
@@ -54,20 +54,20 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
  * The prefix to use when saving the 
  * state to storage
  */
-var prefix = '__CORE__:';
+var prefix = '__RNGN__:';
 /**
  * Creates a react context for HOC
  */
 
-var CoreContext = _react["default"].createContext({});
+var EngineContext = _react["default"].createContext({});
 /**
- * The module core
+ * The module engine
  */
 
 
-exports.CoreContext = CoreContext;
+exports.EngineContext = EngineContext;
 
-var Core =
+var Engine =
 /*#__PURE__*/
 function () {
   // True when everything is loaded and ready
@@ -93,11 +93,11 @@ function () {
    * @param {object} options 
    * Framework options
    */
-  function Core() {
+  function Engine() {
     var config = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
     var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
-    _classCallCheck(this, Core);
+    _classCallCheck(this, Engine);
 
     _defineProperty(this, "isReady", false);
 
@@ -128,7 +128,7 @@ function () {
     this._setConfig(config);
   }
   /**
-   * Starts the core. Collects all necessary data for it
+   * Starts the engine. Collects all necessary data for it
    * to get initialized.
    * 
    * @param {function} setup 
@@ -140,7 +140,7 @@ function () {
    */
 
 
-  _createClass(Core, [{
+  _createClass(Engine, [{
     key: "start",
     value: function start(setup, registrar) {
       var reducers = {};
@@ -172,7 +172,7 @@ function () {
       });
     }
     /**
-     * Initialize core and loads all modules. It reads initials
+     * Initialize engine and loads all modules. It reads initials
      * state, calls the store creator function and invokes
      * "start" & "ready" to all added modules.
      * 
@@ -398,20 +398,20 @@ function () {
     }
   }]);
 
-  return Core;
+  return Engine;
 }();
 /**
  * To get a required or non-required module.
  * 
- * @param {core} core 
+ * @param {engine} engine 
  * @param {array} modules 
  * @param {boolean} isRequired 
  * @returns {object}
  */
 
 
-function getModules(core, modules, isRequired) {
-  return isRequired ? core.getter._getRequiredModules(modules) : core.getter._getModules(modules);
+function getModules(engine, modules, isRequired) {
+  return isRequired ? engine.getter._getRequiredModules(modules) : engine.getter._getModules(modules);
 }
 /**
  * Create a component that wraps the child with modules 
@@ -444,11 +444,11 @@ function createComponentWithModules(ChildComponent, modules, isRequired) {
         value: function render() {
           var _this5 = this;
 
-          return _react["default"].createElement(CoreContext.Consumer, null, function (core) {
-            var store = core.getter.getStore();
+          return _react["default"].createElement(EngineContext.Consumer, null, function (engine) {
+            var store = engine.getter.getStore();
             return _react["default"].createElement(ChildComponent, _objectSpread({
-              core: core.getter,
-              modules: getModules(core, modules, isRequired),
+              engine: engine.getter,
+              modules: getModules(engine, modules, isRequired),
               state: store && (0, _lodash3["default"])(store.getState(), modules)
             }, _this5.props));
           });
@@ -506,5 +506,5 @@ function createModule(name, module) {
  */
 
 
-var _default = Core;
+var _default = Engine;
 exports["default"] = _default;

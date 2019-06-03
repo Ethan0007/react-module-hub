@@ -1,16 +1,16 @@
 import dashboard from './modules/dashboard'
 import note from './modules/note'
 
-export default core => {
+export default engine => {
 
   // SYNC MODULES
   // Modules that synchronously loads on startup
-  core.addModule(dashboard)
-  core.addModule(note)
+  engine.addModule(dashboard)
+  engine.addModule(note)
 
   // ON-DEMAND ASYNC MODULES
   // Modules that asynchronousely loads on demand
-  core.addAsyncModule(() => import('./modules/settings'), 'settings')
+  engine.addAsyncModule(() => import('./modules/settings'), 'settings')
 
   // STARTUP ASYNC MODULES
   // Modules that asynchronousely loads on startup
