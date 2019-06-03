@@ -20,8 +20,6 @@ var _lodash3 = _interopRequireDefault(require("lodash.pick"));
 
 var _lodash4 = _interopRequireDefault(require("lodash.isempty"));
 
-var _lodash5 = _interopRequireDefault(require("lodash.map"));
-
 var _getter = _interopRequireDefault(require("./getter"));
 
 var _setter = _interopRequireDefault(require("./setter"));

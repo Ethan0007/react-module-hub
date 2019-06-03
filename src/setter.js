@@ -49,7 +49,9 @@ class ModuleSetter {
     module.module = name
     if (this._engine._modules[name])
       throw new Error(`Module "${name}" already registered`)
-    this._engine._modules[name] = module
+    const loader = () => Promise.resolve({ default: module })
+    loader.isSingleton = module.isSingleton
+    return this._addScopeAsyncModule(loader, name)
   }
 
   /**
@@ -71,9 +73,8 @@ class ModuleSetter {
       return
     }
     name = (name || module.module).toLowerCase()
-    this.addScopeModule(module, name)
     module.isSingleton = true
-    this._engine.getter.getModule(name)
+    this.addScopeModule(module, name).load()
   }
 
   /**
@@ -95,7 +96,7 @@ class ModuleSetter {
     // Attach the name to loader
     loader.module = name.toLowerCase()
     // Convert to real loader object
-    this._engine._modules[loader.module] = new Loader(
+    return this._engine._modules[loader.module] = new Loader(
       this._engine,
       loader
     )
@@ -115,7 +116,7 @@ class ModuleSetter {
    */
   _addAsyncModule(loader, name) {
     loader.isSingleton = true
-    this._addScopeAsyncModule(loader, name)
+    return this._addScopeAsyncModule(loader, name)
   }
 
 }

@@ -75,7 +75,15 @@ function () {
       name = (name || module.module).toLowerCase();
       module.module = name;
       if (this._engine._modules[name]) throw new Error("Module \"".concat(name, "\" already registered"));
-      this._engine._modules[name] = module;
+
+      var loader = function loader() {
+        return Promise.resolve({
+          "default": module
+        });
+      };
+
+      loader.isSingleton = module.isSingleton;
+      return this._addScopeAsyncModule(loader, name);
     }
     /**
      * Adds a singleton module to engine. Singleton modules
@@ -101,10 +109,8 @@ function () {
       }
 
       name = (name || module.module).toLowerCase();
-      this.addScopeModule(module, name);
       module.isSingleton = true;
-
-      this._engine.getter.getModule(name);
+      this.addScopeModule(module, name).load();
     }
     /**
      * Adds an async scoped module to engine. 
@@ -128,7 +134,7 @@ function () {
 
       loader.module = name.toLowerCase(); // Convert to real loader object
 
-      this._engine._modules[loader.module] = new _loader["default"](this._engine, loader);
+      return this._engine._modules[loader.module] = new _loader["default"](this._engine, loader);
     }
     /**
      * Adds an async singleton module to engine.
@@ -147,8 +153,7 @@ function () {
     key: "_addAsyncModule",
     value: function _addAsyncModule(loader, name) {
       loader.isSingleton = true;
-
-      this._addScopeAsyncModule(loader, name);
+      return this._addScopeAsyncModule(loader, name);
     }
   }]);
 

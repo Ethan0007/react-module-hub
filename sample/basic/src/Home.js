@@ -4,12 +4,12 @@ import { withModules } from './engine'
 class Home extends Component {
   constructor(props) {
     super(props)
-    console.log(this.props.modules);
-    const { user } = this.props.modules
+    const { user, note } = this.props.modules
     this.user = user
+    console.log("Home:render:note", note.$);
   }
   render() {
-    console.log("Home:render", this.user.loaded);
+    console.log("Home:render:user", this.user.loaded);
     return (
       <div id="home">
         <h2>Home</h2>
