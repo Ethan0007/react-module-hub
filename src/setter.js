@@ -1,17 +1,17 @@
 import Loader from './loader'
 
 /**
- * Responsible for adding modules to the core.
+ * Responsible for adding modules to the engine.
  * This will be passed to `registrar` function 
- * in `start` method of core
+ * in `start` method of engine
  */
 class ModuleSetter {
 
-  // Holds the core.
-  _core = null
+  // Holds the engine.
+  _engine = null
 
-  constructor(core) {
-    this._core = core
+  constructor(engine) {
+    this._engine = engine
   }
 
   /**
@@ -25,12 +25,12 @@ class ModuleSetter {
    * The config value
    */
   getConfig(pathKey, defaultValue) {
-    return this._core.getConfig(pathKey, defaultValue)
+    return this._engine.getConfig(pathKey, defaultValue)
   }
 
   /**
-   * Adds a scoped module to core. Scoped modules are 
-   * not referenced in core when instantiating it.
+   * Adds a scoped module to engine. Scoped modules are 
+   * not referenced in engine when instantiating it.
    * 
    * @param {constructor} module 
    * The module constructor
@@ -42,13 +42,13 @@ class ModuleSetter {
   addScopeModule(module, name) {
     this._checkModule(module)
     name = (name || module.module).toLowerCase()
-    if (this._core._modules[name])
+    if (this._engine._modules[name])
       throw new Error(`Module "${name}" already registered`)
-    this._core._modules[name] = module
+    this._engine._modules[name] = module
   }
 
   /**
-   * Adds a singleton module to core. Singleton modules
+   * Adds a singleton module to engine. Singleton modules
    * are added to the collection pool and keeps the 
    * instance for later use.
    * 
@@ -64,11 +64,11 @@ class ModuleSetter {
     name = (name || module.module).toLowerCase()
     this.addScopeModule(module, name)
     module.isSingleton = true
-    this._core.getter.getModule(name)
+    this._engine.getter.getModule(name)
   }
 
   /**
-   * Adds an async scoped module to core. 
+   * Adds an async scoped module to engine. 
    * 
    * The `module` argument should be `() => import('./to/module')`
    * to enable dynamic emport.
@@ -84,14 +84,14 @@ class ModuleSetter {
     // must be explicitly provided 
     if (!name) throw new Error('Async module must explicitly provide a name')
     // Mark module as async and convert it to loader object
-    this._core._modules[name.toLowerCase()] = new Loader(
+    this._engine._modules[name.toLowerCase()] = new Loader(
       module,
-      this._core._options.loading
+      this._engine._options.loading
     )
   }
 
   /**
-   * Adds an async singleton module to core.
+   * Adds an async singleton module to engine.
    * 
    * The `module` argument should be `() => import('./to/module')`
    * to enable dynamic emport.

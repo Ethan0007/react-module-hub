@@ -12,17 +12,17 @@ import Loader from './loader'
  * The prefix to use when saving the 
  * state to storage
  */
-const prefix = '__CORE__:'
+const prefix = '__RENG__:'
 
 /**
  * Creates a react context for HOC
  */
-const CoreContext = React.createContext({})
+const EngineContext = React.createContext({})
 
 /**
- * The module core
+ * The module engine
  */
-class Core {
+class Engine {
 
   // True when everything is loaded and ready
   isReady = false
@@ -66,7 +66,7 @@ class Core {
   }
 
   /**
-   * Starts the core. Collects all necessary data for it
+   * Starts the engine. Collects all necessary data for it
    * to get initialized.
    * 
    * @param {function} setup 
@@ -107,7 +107,7 @@ class Core {
   }
 
   /**
-   * Initialize core and loads all modules. It reads initials
+   * Initialize engine and loads all modules. It reads initials
    * state, calls the store creator function and invokes
    * "start" & "ready" to all added modules.
    * 
@@ -294,15 +294,15 @@ class Core {
 /**
  * To get a required or non-required module.
  * 
- * @param {core} core 
+ * @param {engine} engine 
  * @param {array} modules 
  * @param {boolean} isRequired 
  * @returns {object}
  */
-function getModules(core, modules, isRequired) {
+function getModules(engine, modules, isRequired) {
   return isRequired ?
-    core.getter._getRequiredModules(modules) :
-    core.getter._getModules(modules)
+    engine.getter._getRequiredModules(modules) :
+    engine.getter._getModules(modules)
 }
 
 /**
@@ -320,11 +320,11 @@ function getModules(core, modules, isRequired) {
 function createComponentWithModules(ChildComponent, modules, isRequired) {
   return class extends React.Component {
     render() {
-      return React.createElement(CoreContext.Consumer, null, core => {
-        const store = core.getter.getStore()
+      return React.createElement(EngineContext.Consumer, null, engine => {
+        const store = engine.getter.getStore()
         return React.createElement(ChildComponent, {
-          core: core.getter,
-          modules: getModules(core, modules, isRequired),
+          engine: engine.getter,
+          modules: getModules(engine, modules, isRequired),
           state: store && _pick(store.getState(), modules),
           ...this.props
         })
@@ -366,9 +366,9 @@ function createModule(name, module, options = {}) {
 /**
  * Export
  */
-export default Core
+export default Engine
 export {
-  CoreContext,
+  EngineContext as engineContext,
   createModule,
   createModule as asModule
 }

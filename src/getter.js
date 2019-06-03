@@ -16,12 +16,12 @@ import Loader from './loader'
  */
 class ModuleGetter extends EventEmitter {
 
-  // Holds the core.
-  _core = null
+  // Holds the engine.
+  _engine = null
 
-  constructor(core) {
+  constructor(engine) {
     super()
-    this._core = core
+    this._engine = engine
   }
 
   /**
@@ -35,7 +35,7 @@ class ModuleGetter extends EventEmitter {
    * The config value
    */
   getConfig(pathKey, defaultValue) {
-    return this._core.getConfig(pathKey, defaultValue)
+    return this._engine.getConfig(pathKey, defaultValue)
   }
 
   /**
@@ -43,7 +43,7 @@ class ModuleGetter extends EventEmitter {
    * @returns {store}
    */
   getStore() {
-    return this._core._store
+    return this._engine._store
   }
 
   /**
@@ -58,7 +58,7 @@ class ModuleGetter extends EventEmitter {
    * The module instance or `null` if not found
    */
   getModule(name) {
-    let module = this._core._modules[name.toLowerCase()]
+    let module = this._engine._modules[name.toLowerCase()]
     if (!module) return null
     return this._instantiateModule(module, name)
   }
@@ -73,7 +73,7 @@ class ModuleGetter extends EventEmitter {
    * The module instance
    */
   getRequiredModule(name) {
-    let module = this._core._modules[name.toLowerCase()]
+    let module = this._engine._modules[name.toLowerCase()]
     if (!module) throw new Error(`Module "${name}" not found`)
     return this._instantiateModule(module, name)
   }
@@ -99,9 +99,9 @@ class ModuleGetter extends EventEmitter {
     // Also test for unused initial state, is it striped out
     // on createStore or not
 
-    let loader = this._core._modules[name.toLowerCase()]
+    let loader = this._engine._modules[name.toLowerCase()]
     if (!loader) return null
-    let config = _get(this._core._config.modules, name)
+    let config = _get(this._engine._config.modules, name)
     loader._getInstance(this, config).then(instance => {
       if (callback) {
         if (callback instanceof Component)
@@ -129,7 +129,7 @@ class ModuleGetter extends EventEmitter {
    * Loader object
    */
   getRequiredAsyncModule(name, callback) {
-    let loader = this._core._modules[name.toLowerCase()]
+    let loader = this._engine._modules[name.toLowerCase()]
     if (!loader) return Promise.reject(new Error(`Module "${name}" not found`))
     return this.getAsyncModule(name, callback)
   }
@@ -149,8 +149,8 @@ class ModuleGetter extends EventEmitter {
    * Instance of module or `null` if not found for async
    */
   _instantiateModule(Module, name) {
-    let instances = this._core._instances
-    let config = _get(this._core._config.modules, name)
+    let instances = this._engine._instances
+    let config = _get(this._engine._config.modules, name)
     // Deal with async module
     if (Module instanceof Loader) {
       if (Module._fetched) Module = Module._module
@@ -160,12 +160,12 @@ class ModuleGetter extends EventEmitter {
     if (Module.isSingleton) {
       let instance = instances[name]
       if (!instance) {
-        instance = new Module(this._core.getter, config)
+        instance = new Module(this._engine.getter, config)
         instances[name] = instance
       }
       return instance
     }
-    return new Module(this._core.getter, config)
+    return new Module(this._engine.getter, config)
   }
 
   /**
