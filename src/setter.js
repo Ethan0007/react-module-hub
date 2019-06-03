@@ -40,15 +40,17 @@ class ModuleSetter {
    * @returns {undefined}
    */
   addScopeModule(module, name) {
-    // If no module name, treat it as async module
-    if (!module.module) {
-      this._addScopeAsyncModule(module, name)
-      return
-    }
+    // If no module name, then it's an async loader
+    if (!module.module)
+      return this._addScopeAsyncModule(module, name)
+    // Now, it's a sync module that need to convert to async
     name = (name || module.module).toLowerCase()
-    module.module = name
+    // Make sure it's not registered
     if (this._engine._modules[name])
       throw new Error(`Module "${name}" already registered`)
+    // Replace to explicit name
+    module.module = name
+    // Convert to fake async loader
     const loader = () => Promise.resolve({ default: module })
     loader.isSingleton = module.isSingleton
     return this._addScopeAsyncModule(loader, name)
@@ -67,11 +69,10 @@ class ModuleSetter {
    * @returns {undefined}
    */
   addModule(module, name) {
-    // If no module name, treat it as async module
-    if (!module.module) {
-      this._addAsyncModule(module, name)
-      return
-    }
+    // If no module name, then it's as async loader
+    if (!module.module)
+      return this._addAsyncModule(module, name)
+    // Continue adding module
     name = (name || module.module).toLowerCase()
     module.isSingleton = true
     this.addScopeModule(module, name).load()

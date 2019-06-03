@@ -1,6 +1,4 @@
 import EventEmitter from 'events'
-import _get from 'lodash.get'
-import Loader from './loader'
 
 /**
  * Responsible to providing a module to another module.
@@ -61,7 +59,7 @@ class ModuleGetter extends EventEmitter {
   getModule(name) {
     let module = this._engine._modules[name.toLowerCase()]
     if (!module) return null
-    return this._instantiateModule(module, name)
+    return module
   }
 
   /**
@@ -76,37 +74,7 @@ class ModuleGetter extends EventEmitter {
   getRequiredModule(name) {
     let module = this._engine._modules[name.toLowerCase()]
     if (!module) throw new Error(`Module "${name}" not found`)
-    return this._instantiateModule(module, name)
-  }
-
-  /**
-   * Create an instance of module. If singleton, will save
-   * the instance to collection pool.
-   * 
-   * If the module is async, return `Loader`
-   * 
-   * @param {module} Module 
-   * Module to create instance
-   * @param {string} name 
-   * Name of module
-   * @returns {instance|loader}
-   * Instance of module or `Loader` for async
-   */
-  _instantiateModule(Module, name) {
-    let instances = this._engine._instances
-    let config = _get(this._engine._config.modules, name)
-    // Deal with async module
-    if (Module instanceof Loader) return Module
-    // Continue creating an instance
-    if (Module.isSingleton) {
-      let instance = instances[name]
-      if (!instance) {
-        instance = new Module(this._engine.getter, config)
-        instances[name] = instance
-      }
-      return instance
-    }
-    return new Module(this._engine.getter, config)
+    return module
   }
 
   /**

@@ -1,4 +1,5 @@
-import Loading from './components/Loading'
+import Empty from './components/Empty'
+import Content from './components/Content'
 import _get from 'lodash.get'
 
 /**
@@ -16,15 +17,15 @@ class Loader {
   // When module is instaitated
   loaded = false
   // Holds the module instance (only singleton)
-  instance = null
+  value = null
   // Alias for instance (only singleton)
   $ = null
   // Loading component
-  Loading = Loading
-  // Render content component
-  Content = null
-  // Main component that shows loading or the content
-  View = null
+  Loading = Empty
+  // Render view component
+  View = Empty
+  // Component that shows Loading or View
+  Content = Content(this)
 
   constructor(engine, loader) {
     this._engine = engine
@@ -44,7 +45,7 @@ class Loader {
     // Loading the module
     return this._loader()
       .then(module => {
-        // Transfer flags loader to contructor
+        // Transfer loader flags to contructor
         module = module.default
         module.isSingleton = this._loader.isSingleton
         module.module = this._loader.module
@@ -71,19 +72,21 @@ class Loader {
     return prom.then(Module => {
       const getter = this._engine.getter
       const config = _get(this._engine._config.modules, Module.module)
-      if (this._loader.isSingleton) {
-        if (!this.instance) {
+      if (Module.isSingleton) {
+        if (!this.value) {
           const instance = new Module(getter, config)
-          this.instance = instance
+          this.value = instance
           this.$ = instance
           this.loaded = true
+          // Attache main content component
+          if (instance.view) this.View = instance.view()
           // Trigger module's `start` and `ready` lifecycle
           const prom = instance.start && instance.start(getter)
           const ready = () => instance.ready && instance.ready(getter)
           if (prom) prom.then(ready)
           else ready()
         }
-        return this.instance
+        return this.value
       }
       return new Module(getter, config)
     })
