@@ -15,7 +15,7 @@ import Loader from './loader'
 const prefix = '__RNGN__:'
 
 /**
- * Creates a react context for HOC
+ * Creates a react context component
  */
 const EngineContext = React.createContext({})
 
@@ -49,6 +49,8 @@ class Engine {
   // Holds the root reducer, init method can consume it 
   // for creating the store
   _reducers = null
+  // Root component
+  _root = null
 
   /**
    * Creates an instance
@@ -111,11 +113,14 @@ class Engine {
    * state, calls the store creator function and invokes
    * "start" & "ready" to all added modules.
    * 
+   * @param {component} root
+   * The root component to re-render when needed
    * @param {function} storeCreator 
    * A function that should return the store
    * @returns {promise}
    */
-  init(storeCreator) {
+  init(root, storeCreator) {
+    this._root = root
     const linkImmediateAsyncModules = results => {
       results.forEach(module => {
         this.setter.addModule(module.default)
@@ -141,6 +146,7 @@ class Engine {
       .then(() => {
         this.isReady = true
         this._trigger('ready')
+        this._root.forceUpdate()
       })
   }
 
@@ -325,19 +331,9 @@ function createComponentWithModules(ChildComponent, moduleNames, isRequired) {
     render() {
       return React.createElement(EngineContext.Consumer, null, engine => {
         const store = engine.getter.getStore()
-        let modules = getModules(engine, moduleNames, isRequired)
-        let toLoad = []
-        for (const key in modules) {
-          if (modules.hasOwnProperty(key) && modules[key] instanceof Loader) {
-            const loader = modules[key]
-            if (!loader.loaded) toLoad.push(loader.load())
-          }
-        }
-        if (toLoad.length)
-          Promise.all(toLoad).then(() => this.forceUpdate())
         return React.createElement(ChildComponent, {
           engine: engine.getter,
-          modules,
+          modules: getModules(engine, moduleNames, isRequired),
           state: store && _pick(store.getState(), moduleNames),
           ...this.props
         })

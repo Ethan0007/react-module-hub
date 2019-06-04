@@ -11,7 +11,7 @@ class App extends Component {
   constructor(props) {
     super(props)
     // Initialize engine and its modules and re-render once done.
-    props.engine.init().then(() => this.forceUpdate())
+    props.engine.init(this)
   }
   render() {
     const { engine } = this.props

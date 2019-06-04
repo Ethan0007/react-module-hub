@@ -1,4 +1,6 @@
+import { Component } from 'react'
 import EventEmitter from 'events'
+import _keyBy from 'lodash.keyby'
 
 /**
  * Responsible to providing a module to another module.
@@ -75,6 +77,37 @@ class ModuleGetter extends EventEmitter {
     let module = this._engine._modules[name.toLowerCase()]
     if (!module) throw new Error(`Module "${name}" not found`)
     return module
+  }
+
+  /**
+   * Loads all loaders in object and re-render when component is passed.
+   * 
+   * @param {object} objLoaders 
+   * Loaders in object
+   * @param {component} comp 
+   * Component to update state
+   * @param {object} opt 
+   * Options: `silent` will not re-render
+   * @returns {object}
+   * All loaded modules
+   */
+  loadAll(objLoaders, comp, opt = {}) {
+    let toLoad = []
+    for (const key in objLoaders) {
+      if (objLoaders.hasOwnProperty(key)) {
+        const loader = objLoaders[key]
+        if (!loader.loaded)
+          toLoad.push(loader.load(null, null, { silent: true }))
+      }
+    }
+    return Promise.all(toLoad).then(results => {
+      const objResults = _keyBy(results, 'constructor.module')
+      if (!opt.silent) {
+        if (comp instanceof Component) comp.setState(() => objResults)
+        else this._engine._root.forceUpdate()
+      }
+      return objResults
+    })
   }
 
   /**

@@ -1,3 +1,4 @@
+import { Component } from 'react'
 import Empty from './components/Empty'
 import Content from './components/Content'
 import _get from 'lodash.get'
@@ -58,38 +59,50 @@ class Loader {
   /**
    * Load and creates an instance for async module.
    * 
-   * @param {getter} getter 
-   * Module getter to pass to module
-   * @param {object} config 
-   * Configuration for the module
+   * @param {component} comp
+   * The component to mount the loader
+   * @param {string} name 
+   * Explicit key name of the loader
    * @returns {promise}
    * Passing the module instance
    */
-  load() {
+  load(comp, name, opt = {}) {
     const prom = this._fetched
       ? Promise.resolve(this._module)
       : this._fetch()
-    return prom.then(Module => {
-      const getter = this._engine.getter
-      const config = _get(this._engine._config.modules, Module.module)
-      if (Module.isSingleton) {
-        if (!this.value) {
-          const instance = new Module(getter, config)
-          this.value = instance
-          this.$ = instance
-          this.loaded = true
-          // Attache main content component
-          if (instance.view) this.View = instance.view()
-          // Trigger module's `start` and `ready` lifecycle
-          const prom = instance.start && instance.start(getter)
-          const ready = () => instance.ready && instance.ready(getter)
-          if (prom) prom.then(ready)
-          else ready()
+    return prom
+      .then(Module => {
+        const getter = this._engine.getter
+        const config = _get(this._engine._config.modules, Module.module)
+        if (Module.isSingleton) {
+          if (!this.value) {
+            const instance = new Module(getter, config)
+            this.value = instance
+            this.$ = instance
+            this.loaded = true
+            // Attach main content component
+            if (instance.view) this.View = instance.view()
+            // Trigger module's `start` and `ready` lifecycle
+            const prom = instance.start && instance.start(getter)
+            const ready = () => instance.ready && instance.ready(getter)
+            if (prom) prom.then(ready)
+            else ready()
+          }
+          return this.value
         }
-        return this.value
-      }
-      return new Module(getter, config)
-    })
+        return new Module(getter, config)
+      })
+      .then(instance => {
+        if (!opt.silent) {
+          if (comp instanceof Component)
+            comp.setState(() => ({
+              [name || instance.constructor.module]: instance
+            }))
+          else
+            this._engine._root.forceUpdate()
+        }
+        return instance
+      })
   }
 
 }
