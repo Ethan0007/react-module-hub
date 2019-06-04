@@ -1,18 +1,17 @@
 import React from 'react'
 import { combineReducers } from 'redux'
-import _get from 'lodash.get'
 import _set from 'lodash.set'
-import _pick from 'lodash.pick'
-import _isEmpty from 'lodash.isempty'
+import { _get, _pick, _isEmpty } from './lib/util'
+import Storage from './lib/storage'
 import ModuleGetter from './getter'
 import ModuleSetter from './setter'
 import Loader from './loader'
 
 /**
- * The prefix to use when saving the 
- * state to storage
+ * The prefixes
  */
-const prefix = '__RNGN__:'
+const prefix = 'rngn'
+const prefixState = prefix + 's:'
 
 /**
  * Creates a react context component
@@ -40,9 +39,6 @@ class Engine {
   _modules = {}
   // Holds the singleton instances
   _instances = {}
-  // Promises returned by start lifecycle,
-  // will be cleared on ready
-  _startups = []
   // Immediate async imports returned by registrar,
   // will also be cleared on ready
   _imports = null
@@ -63,49 +59,35 @@ class Engine {
   constructor(config = {}, options = {}) {
     this.getter = new ModuleGetter(this)
     this.setter = new ModuleSetter(this)
-    this._options = options
+    this._setOptions(options)
     this._setConfig(config)
   }
 
   /**
-   * Starts the engine. Collects all necessary data for it
-   * to get initialized.
+   * Sets options
    * 
-   * @param {function} setup 
-   * A setup function that should return the root component
+   * @param {object} options 
+   * Options to check and clean
+   */
+  _setOptions(options) {
+    if (!options.storage)
+      options.storage = new Storage(prefix + 'x:')
+    this._options = options
+  }
+
+  /**
+   * Starts the engine. Collects all modules from registrar.
+   * 
+   * @param {function} app 
+   * A function that should return the root component
    * @param {function} registrar 
    * A function that adds modules
    * @returns {component}
    * The component from setup function
    */
-  start(setup, registrar) {
-    let reducers = {}
-    let screens = {}
-    let modals = {}
-    let extra = {}
-    // First of all, get all modules
+  start(app, registrar) {
     this._imports = registrar(this.setter) || []
-    // Parsing
-    for (const key in this._modules) {
-      if (this._modules.hasOwnProperty(key)) {
-        const mod = this._modules[key]
-        if (mod instanceof Loader) continue
-        if (mod.reducers) reducers[key] = mod.reducers
-        if (mod.screens) Object.assign(screens, mod.screens)
-        if (mod.modals) Object.assign(modals, mod.modals)
-        // Extra data to pass
-        if (mod.extra) extra[key] = mod.extra
-      }
-    }
-    // Combine all reducers from modules
-    if (!_isEmpty(reducers))
-      this._reducers = combineReducers(reducers)
-    // Call component setup from user
-    return setup(this, {
-      screens,
-      modals,
-      extra
-    })
+    return app(this)
   }
 
   /**
@@ -115,31 +97,68 @@ class Engine {
    * 
    * @param {component} root
    * The root component to re-render when needed
-   * @param {function} storeCreator 
-   * A function that should return the store
+   * @param {function} setup 
+   * A setup function that should return all needed things
    * @returns {promise}
    */
-  init(root, storeCreator) {
+  init(root, setup) {
     this._root = root
-    const linkImmediateAsyncModules = results => {
+    const loadSyncModules = () => {
+      let toLoad = []
+      for (const key in this._modules) {
+        if (this._modules.hasOwnProperty(key)) {
+          const mod = this._modules[key]
+          if (mod instanceof Loader && mod.isSync)
+            toLoad.push(mod.load(null, null, { silent: true }))
+        }
+      }
+      return Promise.all(toLoad)
+    }
+    const parseAllThings = initState => {
+      let reducers = {}
+      let screens = {}
+      let modals = {}
+      let extras = {}
+      for (const key in this._modules) {
+        if (this._modules.hasOwnProperty(key)) {
+          const mod = this._modules[key]._module
+          if (mod.reducers) reducers[key] = mod.reducers
+          if (mod.screens) Object.assign(screens, mod.screens)
+          if (mod.modals) Object.assign(modals, mod.modals)
+          if (mod.extra) extras[key] = mod.extra
+        }
+      }
+      if (!_isEmpty(reducers))
+        this._reducers = combineReducers(reducers)
+      if (setup) {
+        const result = setup({
+          rootReducer: this._reducers,
+          initialState: initState,
+          navigationScreens: screens,
+          navigationModals: modals,
+          extras: extras
+        }) || {}
+        if (result.store) this._setStore(result.store)
+      }
+    }
+    const loadImmediateAsyncModules = results => {
       results.forEach(module => {
         this.setter.addModule(module.default)
       })
     }
-    return this._getInitialState()
-      .then(initState => {
-        if (storeCreator && this._reducers) {
-          const store = storeCreator(this._reducers, initState)
-          if (store) this._setStore(store)
-        }
-      })
-      .then(() => Promise.all(this._imports))
-      .then(linkImmediateAsyncModules)
-      .then(() => this._trigger('start', this._startups))
-      .then(() => Promise.all(this._startups))
+    const getInitialState = () => this._getInitialState()
+    const loadImports = () => Promise.all(this._imports)
+    const triggerStart = () => this._trigger('start')
+    const loadStartups = startups => Promise.all(startups)
+    return Promise.resolve()
+      .then(loadSyncModules)
+      .then(getInitialState)
+      .then(parseAllThings)
+      .then(loadImports)
+      .then(loadImmediateAsyncModules)
+      .then(triggerStart)
+      .then(loadStartups)
       .finally(() => {
-        this._startups.length = 0
-        this._startups = null
         this._imports.length = 0
         this._imports = null
       })
@@ -163,6 +182,14 @@ class Engine {
   }
 
   /**
+   * Returns the global store.
+   * @returns {store}
+   */
+  getStore() {
+    return this._store
+  }
+
+  /**
    * Gets the initial state from storage, if available
    * 
    * @returns {object}
@@ -175,12 +202,11 @@ class Engine {
       let hasPersist = false
       for (const key in this._modules) {
         if (!this._modules.hasOwnProperty(key)) continue
-        const mod = this._modules[key]
-        if (mod instanceof Loader) continue
+        const mod = this._modules[key]._module
         if (mod.persist && storage) {
           hasPersist = true
           if (mod.persist === true) {
-            storage.getItem(prefix + mod.module)
+            storage.getItem(prefixState + mod.module)
               .then(value => _set(state, mod.module, JSON.parse(value || '{}')))
               .then(resolve)
               .catch(reject)
@@ -189,7 +215,7 @@ class Engine {
             mod.persist.forEach(path => {
               path = mod.module + '.' + path
               promises.push(
-                storage.getItem(prefix + path)
+                storage.getItem(prefixState + path)
                   .then(value => {
                     try {
                       _set(state, path, JSON.parse(value))
@@ -230,8 +256,7 @@ class Engine {
     // Observe those modules who set persist property
     for (const key in this._modules) {
       if (!this._modules.hasOwnProperty(key)) continue
-      const mod = this._modules[key]
-      if (mod instanceof Loader) continue
+      const mod = this._modules[key]._module
       if (mod.persist) {
         if (mod.persist === true) {
           // Persist whole module
@@ -264,7 +289,7 @@ class Engine {
         lastState = currentState
         // Write to storage
         if (storage && path)
-          storage.setItem(prefix + path, JSON.stringify(currentState))
+          storage.setItem(prefixState + path, JSON.stringify(currentState))
       }
     }
     let unsubscribe = this._store.subscribe(handleChange)
@@ -281,17 +306,18 @@ class Engine {
    * The placeholder to hold the result of
    * invoked method
    */
-  _trigger(event, results) {
+  _trigger(event) {
     let { modules: moduleConfigs } = this._config
-    for (let key in this._instances) {
-      if (this._instances.hasOwnProperty(key)) {
-        let instance = this._instances[key]
-        if (instance && instance[event]) {
-          let res = instance[event](this.getter, moduleConfigs[key])
-          if (results) results.push(res)
-        }
+    let results = []
+    for (const key in this._modules) {
+      if (!this._modules.hasOwnProperty(key)) continue
+      const mod = this._modules[key]
+      if (mod.loaded && mod.value[event]) {
+        let res = mod.value[event](this.getter, moduleConfigs[key])
+        results.push(res)
       }
     }
+    return results
   }
 
 }

@@ -96,8 +96,7 @@ class ModuleGetter extends EventEmitter {
     for (const key in objLoaders) {
       if (objLoaders.hasOwnProperty(key)) {
         const loader = objLoaders[key]
-        if (!loader.loaded)
-          toLoad.push(loader.load(null, null, { silent: true }))
+        toLoad.push(loader.load(null, null, { silent: true }))
       }
     }
     return Promise.all(toLoad).then(results => {

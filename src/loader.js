@@ -1,7 +1,7 @@
 import { Component } from 'react'
 import Empty from './components/Empty'
 import Content from './components/Content'
-import _get from 'lodash.get'
+import { _get } from './lib/util'
 
 /**
  * Responsible for loading an async module.
@@ -49,6 +49,7 @@ class Loader {
         // Transfer loader flags to contructor
         module = module.default
         module.isSingleton = this._loader.isSingleton
+        module.isSync = this._loader.isSync
         module.module = this._loader.module
         this._module = module
         this._fetched = true
@@ -83,10 +84,12 @@ class Loader {
             // Attach main content component
             if (instance.view) this.View = instance.view()
             // Trigger module's `start` and `ready` lifecycle
-            const prom = instance.start && instance.start(getter)
-            const ready = () => instance.ready && instance.ready(getter)
-            if (prom) prom.then(ready)
-            else ready()
+            if (!Module.isSync) {
+              const prom = instance.start && instance.start(getter)
+              const ready = () => instance.ready && instance.ready(getter)
+              if (prom) prom.then(ready)
+              else ready()
+            }
           }
           return this.value
         }

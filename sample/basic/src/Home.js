@@ -5,14 +5,14 @@ class Home extends Component {
   state = {}
   constructor(props) {
     super(props)
-    console.log(props);
-    const { user } = props.modules
     props.engine.loadAll(props.modules, this)
-    // user.load(this)
+    // setTimeout(() => {
+    //   console.log(this.state);
+    //   this.state.user.setTitle('New Title')
+    // }, 5000)
   }
   render() {
     const { user } = this.props.modules
-    console.log(this.state);
     return (
       <div id="home">
         <h2>Home</h2>

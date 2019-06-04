@@ -53,6 +53,7 @@ class ModuleSetter {
     // Convert to fake async loader
     const loader = () => Promise.resolve({ default: module })
     loader.isSingleton = module.isSingleton
+    loader.isSync = true
     return this._addScopeAsyncModule(loader, name)
   }
 
