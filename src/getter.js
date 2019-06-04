@@ -104,7 +104,7 @@ class ModuleGetter extends EventEmitter {
       const objResults = _keyBy(results, 'constructor.module')
       if (!opt.silent) {
         if (comp instanceof Component) comp.setState(() => objResults)
-        else this._engine._root.forceUpdate()
+        else if (this._engine._root) this._engine._root.forceUpdate()
       }
       return objResults
     })

@@ -98,7 +98,7 @@ class Loader {
             comp.setState(() => ({
               [name || instance.constructor.module]: instance
             }))
-          else
+          else if (this._engine._root)
             this._engine._root.forceUpdate()
         }
         return instance

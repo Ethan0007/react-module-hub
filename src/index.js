@@ -146,7 +146,6 @@ class Engine {
       .then(() => {
         this.isReady = true
         this._trigger('ready')
-        this._root.forceUpdate()
       })
   }
 

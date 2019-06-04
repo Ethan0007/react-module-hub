@@ -75,7 +75,7 @@ class ModuleSetter {
     // Continue adding module
     name = (name || module.module).toLowerCase()
     module.isSingleton = true
-    this.addScopeModule(module, name).load()
+    this.addScopeModule(module, name).load(null, null, { silent: true })
   }
 
   /**
