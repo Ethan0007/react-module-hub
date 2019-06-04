@@ -6,10 +6,10 @@ class Home extends Component {
   constructor(props) {
     super(props)
     props.engine.loadAll(props.modules, this)
-    // setTimeout(() => {
-    //   console.log(this.state);
-    //   this.state.user.setTitle('New Title')
-    // }, 5000)
+    setTimeout(() => {
+      console.log(this.state);
+      this.state.user.setTitle('New Title')
+    }, 5000)
   }
   render() {
     const { user } = this.props.modules
@@ -21,5 +21,7 @@ class Home extends Component {
     )
   }
 }
+
+// export default Home
 
 export default withModules(Home, 'user', 'note', 'settings')

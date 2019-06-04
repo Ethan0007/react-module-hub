@@ -114,7 +114,7 @@ class Engine {
       }
       return Promise.all(toLoad)
     }
-    const parseAllThings = initState => {
+    const runSetup = initState => {
       let reducers = {}
       let screens = {}
       let modals = {}
@@ -141,21 +141,22 @@ class Engine {
         if (result.store) this._setStore(result.store)
       }
     }
-    const loadImmediateAsyncModules = results => {
-      results.forEach(module => {
-        this.setter.addModule(module.default)
-      })
+    const loadImports = () => {
+      return Promise.all(this._imports)
+        .then(results => {
+          results.forEach(module => {
+            this.setter.addModule(module.default)
+          })
+        })
     }
     const getInitialState = () => this._getInitialState()
-    const loadImports = () => Promise.all(this._imports)
     const triggerStart = () => this._trigger('start')
     const loadStartups = startups => Promise.all(startups)
     return Promise.resolve()
       .then(loadSyncModules)
       .then(getInitialState)
-      .then(parseAllThings)
+      .then(runSetup)
       .then(loadImports)
-      .then(loadImmediateAsyncModules)
       .then(triggerStart)
       .then(loadStartups)
       .finally(() => {
@@ -207,7 +208,8 @@ class Engine {
           hasPersist = true
           if (mod.persist === true) {
             storage.getItem(prefixState + mod.module)
-              .then(value => _set(state, mod.module, JSON.parse(value || '{}')))
+              .then(value => value !== null && _set(
+                state, mod.module, JSON.parse(value)))
               .then(resolve)
               .catch(reject)
           } else {

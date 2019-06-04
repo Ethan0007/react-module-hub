@@ -17,7 +17,7 @@ class App extends Component {
       if (args.rootReducer) {
         store = createStore(
           args.rootReducer,
-          args.initialState
+          args.initialState || {}
         )
       }
       return { store }

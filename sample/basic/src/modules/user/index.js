@@ -1,11 +1,11 @@
 import React, { Component } from 'react'
 
 function UserComponent(user, greet = "Hi") {
-  console.log('A', user._store);
   return class extends Component {
     render() {
+      const { user: state } = user._store.getState()
       return (
-        <div>{`${greet} ${user.name}`}</div>
+        <div>{`${greet} ${user.name} ${state.list[0].title}`}</div>
       )
     }
   }
@@ -35,15 +35,15 @@ function notes(state = initialNotes, action) {
 export default class {
 
   static module = 'user'
-  static persist = true
+  // static persist = true
   static reducers = notes
 
   name = 'Kevin'
 
   _store = null
 
-  start(engine) {
-    console.log('B');
+  constructor(engine) {
+    console.log('user:contructor');
     this._store = engine.getStore()
   }
 
