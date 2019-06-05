@@ -213,6 +213,7 @@ class Engine {
         .then(keys => {
           const toGet = []
           keys.forEach(key => {
+            if (!key.startsWith(prefixState)) return
             const path = key.split(':')[1]
             toGet.push(
               storage.getItem(key).then(value => {
