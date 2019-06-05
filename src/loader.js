@@ -88,8 +88,9 @@ class Loader {
               if (prom) prom.then(ready)
               else ready()
             }
-            if (!comp && this._engine._root)
+            if (!comp && this._engine._root) {
               this._engine._root.forceUpdate()
+            }
           } else {
             instance = this.value
           }

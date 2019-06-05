@@ -1,8 +1,8 @@
 import React, { Component } from 'react'
-import { combineReducers } from 'redux'
+import { combineReducers, createStore } from 'redux'
 import { connect } from 'react-redux'
 import _set from 'lodash.set'
-import { _get, _isEmpty } from './lib/util'
+import { _get, _isEmpty, _mapObject } from './lib/util'
 import Storage from './lib/storage'
 import ModuleGetter from './getter'
 import ModuleSetter from './setter'
@@ -110,7 +110,7 @@ class Engine {
       for (const key in this._modules) {
         if (this._modules.hasOwnProperty(key)) {
           const mod = this._modules[key]
-          if (mod instanceof Loader)
+          if (mod instanceof Loader && mod._loader.isSync)
             toLoad.push(mod.load())
         }
       }
@@ -124,29 +124,35 @@ class Engine {
       for (const key in this._modules) {
         if (this._modules.hasOwnProperty(key)) {
           const mod = this._modules[key]._module
-          if (mod.reducers) reducers[key] = mod.reducers
-          if (mod.screens) Object.assign(screens, mod.screens)
-          if (mod.modals) Object.assign(modals, mod.modals)
-          if (mod.extra) extras[key] = mod.extra
+          if (mod) {
+            if (mod.reducers) reducers[key] = mod.reducers
+            if (mod.screens) Object.assign(screens, mod.screens)
+            if (mod.modals) Object.assign(modals, mod.modals)
+            if (mod.extra) extras[key] = mod.extra
+          }
         }
       }
       if (!_isEmpty(reducers))
         this._reducers = combineReducers(reducers)
+      let setupResult
       if (setup) {
-        const setupResult = setup({
+        setupResult = setup({
           rootReducer: this._reducers,
           initialState: initState,
           navigationScreens: screens,
           navigationModals: modals,
           extras: extras
         })
-        const processResult = result => {
-          if (result.store) this._setStore(result.store)
-        }
-        if (setupResult instanceof Promise)
-          return setupResult.then(processResult)
-        processResult(setupResult)
       }
+      const processResult = result => {
+        this._setStore(result.store || createStore(
+          this._reducers || (s => s),
+          initState || {}
+        ))
+      }
+      if (setupResult instanceof Promise)
+        return setupResult.then(processResult)
+      processResult(setupResult)
     }
     const loadImports = () => {
       return Promise.all(this._imports)
@@ -211,7 +217,7 @@ class Engine {
       for (const key in this._modules) {
         if (!this._modules.hasOwnProperty(key)) continue
         const mod = this._modules[key]._module
-        if (mod.persist && storage) {
+        if (mod && mod.persist && storage) {
           hasPersist = true
           if (mod.persist === true) {
             storage.getItem(prefixState + mod.module)
@@ -266,7 +272,7 @@ class Engine {
     for (const key in this._modules) {
       if (!this._modules.hasOwnProperty(key)) continue
       const mod = this._modules[key]._module
-      if (mod.persist) {
+      if (mod && mod.persist) {
         if (mod.persist === true) {
           // Persist whole module
           this._persistState(mod.module)
@@ -339,13 +345,17 @@ class Engine {
  * @param {boolean} isRequired 
  * @returns {object}
  */
-function getModules(engine, moduleNames, isRequired) {
+function getLoaders(engine, moduleNames, isRequired) {
   return isRequired ?
     engine.getter._getRequiredModules(moduleNames) :
     engine.getter._getModules(moduleNames)
 }
 
-function mapModuleStatesToProps(moduleNames, state) {
+function getModules(loaders) {
+  return _mapObject(loaders, mod => mod.value)
+}
+
+function mapStateToProps(moduleNames, state) {
   return moduleNames.reduce((o, k) => {
     const val = state[k]
     if (val) o[k] = val
@@ -373,9 +383,11 @@ function createComponentWithModules(ChildComponent, moduleNames, isRequired) {
   return props => {
     return (
       React.createElement(EngineContext.Consumer, null, engine => {
+        const loaders = getLoaders(engine, moduleNames, isRequired)
         return React.createElement(ChildComponent, {
           engine: engine.getter,
-          modules: getModules(engine, moduleNames, isRequired),
+          loaders,
+          modules: getModules(loaders),
           ...props
         })
       })
@@ -387,13 +399,13 @@ function createComponentWithModules(ChildComponent, moduleNames, isRequired) {
  * An HOCs to inject modules to the component
  */
 export function withModules(ChildComponent, ...moduleNames) {
-  return connect(state => mapModuleStatesToProps(moduleNames, state))(
+  return connect(state => ({ state: mapStateToProps(moduleNames, state) }))(
     createComponentWithModules(ChildComponent, moduleNames)
   )
 }
 
 export function withRequiredModules(ChildComponent, ...moduleNames) {
-  return connect(state => mapModuleStatesToProps(moduleNames, state))(
+  return connect(state => ({ state: mapStateToProps(moduleNames, state) }))(
     createComponentWithModules(ChildComponent, moduleNames, true)
   )
 }

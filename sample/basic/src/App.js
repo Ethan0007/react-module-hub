@@ -13,7 +13,7 @@ class App extends Component {
     super(props)
     const engine = props.engine
     // Initialize engine and its modules and re-render once done.
-    engine.init(args => {
+    engine.init(this, args => {
       let store;
       if (args.rootReducer) {
         store = createStore(
@@ -23,8 +23,7 @@ class App extends Component {
       }
       return { store }
     }).then(() => {
-      const user = engine.getter.getModule('user');
-      console.log(user);
+      // Add more things to do
       this.forceUpdate()
     })
   }

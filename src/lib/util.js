@@ -21,3 +21,11 @@ export function _pick(object, keys) {
 export function _isEmpty(obj) {
   return [Object, Array].includes((obj || {}).constructor) && !Object.entries((obj || {})).length
 }
+
+
+export function _mapObject(object, mapFn) {
+  return Object.keys(object).reduce(function (result, key) {
+    result[key] = mapFn(object[key])
+    return result
+  }, {})
+}
