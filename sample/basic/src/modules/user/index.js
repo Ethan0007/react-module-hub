@@ -43,8 +43,8 @@ export default class {
   _store = null
 
   constructor(engine) {
-    console.log('user:contructor');
     this._store = engine.getStore()
+    console.log('user:contructor', this._store);
   }
 
   setTitle(title) {

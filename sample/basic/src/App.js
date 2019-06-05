@@ -1,5 +1,5 @@
 import React, { Component } from 'react'
-import { EngineContext } from './engine'
+import { EngineProvider } from './engine'
 import Home from './Home'
 import { createStore } from 'redux'
 
@@ -11,8 +11,9 @@ import { createStore } from 'redux'
 class App extends Component {
   constructor(props) {
     super(props)
+    const engine = props.engine
     // Initialize engine and its modules and re-render once done.
-    props.engine.init(this, args => {
+    engine.init(args => {
       let store;
       if (args.rootReducer) {
         store = createStore(
@@ -21,7 +22,11 @@ class App extends Component {
         )
       }
       return { store }
-    }).then(() => this.forceUpdate())
+    }).then(() => {
+      const user = engine.getter.getModule('user');
+      console.log(user);
+      this.forceUpdate()
+    })
   }
   render() {
     const { engine } = this.props
@@ -29,19 +34,19 @@ class App extends Component {
       // Make sure the engine is hot and ready before 
       // attaching the its context.
       !engine.isReady ? null :
-        <EngineContext.Provider value={engine}>
+        <EngineProvider engine={engine}>
           <div className="App">
             <header className="App-header">
-              <h1>Welcome to Rengine</h1>
+              <h1>Welcome to Renginex</h1>
             </header>
             <Home />
           </div>
-        </EngineContext.Provider>
+        </EngineProvider>
     )
   }
 }
 
-export default (engine) => {
+export default engine => {
   // Provide the engine to the root app component.
   return <App engine={engine} />
 }

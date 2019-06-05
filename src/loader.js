@@ -8,27 +8,24 @@ import { _get } from './lib/util'
  */
 class Loader {
 
-  _engine = null
-  // Holds the loader function from user
-  _loader = null
-  // When module is fetched
-  _fetched = false
-  // Holds the module constructor
-  _module = null
-  // When module is instaitated
-  loaded = false
-  // Holds the module instance (only singleton)
-  value = null
-  // Alias for instance (only singleton)
-  $ = null
-  // Loading component
-  Loading = Empty
-  // Render view component
-  View = Empty
-  // Component that shows Loading or View
-  Content = Content(this)
 
   constructor(engine, loader) {
+    // When module is fetched
+    this._fetched = false
+    // Holds the module constructor
+    this._module = null
+    // When module is instaitated
+    this.loaded = false
+    // Holds the module instance (only singleton)
+    this.value = null
+    // Alias for instance (only singleton)
+    this.$ = null
+    // Loading component
+    this.Loading = Empty
+    // Render view component
+    this.View = Empty
+    // Component that shows Loading or View
+    this.Content = Content(this)
     this._engine = engine
     this._loader = loader
     if (engine._options.loading)

@@ -1,11 +1,13 @@
-import React from 'react'
+import React, { Component } from 'react'
 import { combineReducers } from 'redux'
+import { connect } from 'react-redux'
 import _set from 'lodash.set'
-import { _get, _pick, _isEmpty } from './lib/util'
+import { _get, _isEmpty } from './lib/util'
 import Storage from './lib/storage'
 import ModuleGetter from './getter'
 import ModuleSetter from './setter'
 import Loader from './loader'
+import EngineProvider from './components/Provider'
 
 /**
  * The prefixes
@@ -23,31 +25,6 @@ const EngineContext = React.createContext({})
  */
 class Engine {
 
-  // True when everything is loaded and ready
-  isReady = false
-  // Module getter
-  getter = null
-  // Module setter
-  setter = null
-  // Options for the framework
-  _options = null
-  // Holds the user configuration
-  _config = null
-  // Holds the global redux store
-  _store = null
-  // Holds the module constructors
-  _modules = {}
-  // Holds the singleton instances
-  _instances = {}
-  // Immediate async imports returned by registrar,
-  // will also be cleared on ready
-  _imports = null
-  // Holds the root reducer, init method can consume it 
-  // for creating the store
-  _reducers = null
-  // Root component
-  _root = null
-
   /**
    * Creates an instance
    * 
@@ -57,6 +34,30 @@ class Engine {
    * Framework options
    */
   constructor(config = {}, options = {}) {
+    // True when everything is loaded and ready
+    this.isReady = false
+    // Module getter
+    this.getter = null
+    // Module setter
+    this.setter = null
+    // Options for the framework
+    this._options = null
+    // Holds the user configuration
+    this._config = null
+    // Holds the global redux store
+    this._store = null
+    // Holds the module constructors
+    this._modules = {}
+    // Holds the singleton instances
+    this._instances = {}
+    // Immediate async imports returned by registrar,
+    // will also be cleared on ready
+    this._imports = null
+    // Holds the root reducer, init method can consume it 
+    // for creating the store
+    this._reducers = null
+    // Root component
+    this._root = null
     this.getter = new ModuleGetter(this)
     this.setter = new ModuleSetter(this)
     this._setOptions(options)
@@ -102,13 +103,14 @@ class Engine {
    * @returns {promise}
    */
   init(root, setup) {
-    this._root = root
+    if (root instanceof Component) this._root = root
+    else if (typeof root === 'function') setup = root
     const loadSyncModules = () => {
       let toLoad = []
       for (const key in this._modules) {
         if (this._modules.hasOwnProperty(key)) {
           const mod = this._modules[key]
-          if (mod instanceof Loader && mod.isSync)
+          if (mod instanceof Loader)
             toLoad.push(mod.load())
         }
       }
@@ -131,14 +133,19 @@ class Engine {
       if (!_isEmpty(reducers))
         this._reducers = combineReducers(reducers)
       if (setup) {
-        const result = setup({
+        const setupResult = setup({
           rootReducer: this._reducers,
           initialState: initState,
           navigationScreens: screens,
           navigationModals: modals,
           extras: extras
-        }) || {}
-        if (result.store) this._setStore(result.store)
+        })
+        const processResult = result => {
+          if (result.store) this._setStore(result.store)
+        }
+        if (setupResult instanceof Promise)
+          return setupResult.then(processResult)
+        processResult(setupResult)
       }
     }
     const loadImports = () => {
@@ -153,9 +160,9 @@ class Engine {
     const triggerStart = () => this._trigger('start')
     const loadStartups = startups => Promise.all(startups)
     return Promise.resolve()
-      .then(loadSyncModules)
       .then(getInitialState)
       .then(runSetup)
+      .then(loadSyncModules)
       .then(loadImports)
       .then(triggerStart)
       .then(loadStartups)
@@ -338,6 +345,14 @@ function getModules(engine, moduleNames, isRequired) {
     engine.getter._getModules(moduleNames)
 }
 
+function mapModuleStatesToProps(moduleNames, state) {
+  return moduleNames.reduce((o, k) => {
+    const val = state[k]
+    if (val) o[k] = val
+    return o
+  }, {})
+}
+
 /**
  * Create a component that wraps the child with modules 
  * in the props.
@@ -353,33 +368,41 @@ function getModules(engine, moduleNames, isRequired) {
  * @returns {component}
  * The HOC component
  */
+
 function createComponentWithModules(ChildComponent, moduleNames, isRequired) {
-  return class extends React.Component {
-    render() {
-      return React.createElement(EngineContext.Consumer, null, engine => {
-        const store = engine.getter.getStore()
+  return props => {
+    return (
+      React.createElement(EngineContext.Consumer, null, engine => {
         return React.createElement(ChildComponent, {
           engine: engine.getter,
           modules: getModules(engine, moduleNames, isRequired),
-          state: store && _pick(store.getState(), moduleNames),
-          ...this.props
+          ...props
         })
       })
-    }
+    )
   }
 }
 
 /**
- * An HOC to inject modules to the component
+ * An HOCs to inject modules to the component
  */
 export function withModules(ChildComponent, ...moduleNames) {
+  return connect(state => mapModuleStatesToProps(moduleNames, state))(
+    createComponentWithModules(ChildComponent, moduleNames)
+  )
+}
+
+export function withRequiredModules(ChildComponent, ...moduleNames) {
+  return connect(state => mapModuleStatesToProps(moduleNames, state))(
+    createComponentWithModules(ChildComponent, moduleNames, true)
+  )
+}
+
+export function withOnlyModules(ChildComponent, ...moduleNames) {
   return createComponentWithModules(ChildComponent, moduleNames)
 }
 
-/**
- * An HOC to inject required modules to the component
- */
-export function withRequiredModules(ChildComponent, ...moduleNames) {
+export function withOnlyRequiredModules(ChildComponent, ...moduleNames) {
   return createComponentWithModules(ChildComponent, moduleNames, true)
 }
 
@@ -404,6 +427,7 @@ function createModule(name, module, options = {}) {
  */
 export default Engine
 export {
+  EngineProvider,
   EngineContext,
   createModule,
   createModule as asModule

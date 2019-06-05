@@ -7,9 +7,6 @@ import Loader from './loader'
  */
 class ModuleSetter {
 
-  // Holds the engine.
-  _engine = null
-
   constructor(engine) {
     this._engine = engine
   }

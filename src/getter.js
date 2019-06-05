@@ -14,9 +14,6 @@ import _keyBy from 'lodash.keyby'
  */
 class ModuleGetter extends EventEmitter {
 
-  // Holds the engine.
-  _engine = null
-
   constructor(engine) {
     super()
     this._engine = engine

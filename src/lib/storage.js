@@ -5,8 +5,6 @@
 
 class Storage {
 
-  available = false
-
   constructor(key) {
     try {
       localStorage.setItem(key, 'LS')

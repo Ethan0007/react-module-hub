@@ -2,27 +2,18 @@ import React, { Component } from 'react'
 import { withModules } from './engine'
 
 class Home extends Component {
-  state = {}
   constructor(props) {
     super(props)
-    props.engine.loadAll(props.modules, this)
-    setTimeout(() => {
-      props.engine.loadAll(props.modules, this)
-      //   console.log(this.state);
-      //   this.state.user.setTitle('New Title')
-    }, 5000)
+    console.log('Home:contructor', props.modules.user._fetched);
+    props.modules.user.$.setTitle('New Title')
   }
   render() {
-    const { user } = this.props.modules
     return (
       <div id="home">
-        <h2>Home</h2>
-        <div><user.View /></div>
+        <h2>Home {this.props.user.list[0].title}</h2>
       </div>
     )
   }
 }
-
-// export default Home
 
 export default withModules(Home, 'user', 'note', 'settings')
