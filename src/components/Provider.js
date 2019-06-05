@@ -3,17 +3,20 @@ import { Provider } from 'react-redux'
 import { EngineContext } from '..'
 
 export default props => {
-  const store = props.engine.getStore()
+  const engine = props.engine
+  const store = engine.getStore()
   return (
-    React.createElement(
-      EngineContext.Provider,
-      { value: props.engine },
-      !store ? props.children :
-        React.createElement(
-          Provider,
-          { store },
-          props.children
-        )
-    )
+    engine.isReady ?
+      React.createElement(
+        EngineContext.Provider,
+        { value: engine },
+        !store ? props.children :
+          React.createElement(
+            Provider,
+            { store },
+            props.children
+          )
+      ) :
+      props.loading || null
   )
 }

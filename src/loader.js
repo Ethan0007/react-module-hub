@@ -2,6 +2,7 @@ import { Component } from 'react'
 import Empty from './components/Empty'
 import Content from './components/Content'
 import { _get } from './lib/util'
+import { combineReducers } from 'redux'
 
 /**
  * Responsible for loading an async module.
@@ -43,13 +44,23 @@ class Loader {
     // Loading the module
     return this._loader()
       .then(module => {
-        // Transfer loader flags to contructor
+        // Transfer loader flags to constructor
         module = module.default
         module.isSingleton = this._loader.isSingleton
         module.isSync = this._loader.isSync
         module.module = this._loader.module
         this._module = module
         this._fetched = true
+        // Replace reducer
+        if (!module.isSync && module.reducer) {
+          this._engine._persistModule(module)
+          this._engine._store.replaceReducer(
+            combineReducers({
+              ...this._engine._reducers,
+              [module.module]: module.reducer
+            })
+          )
+        }
         return module
       })
   }
@@ -64,7 +75,7 @@ class Loader {
    * @returns {promise}
    * Passing the module instance
    */
-  load(comp, name) {
+  load(comp) {
     const prom = this._fetched
       ? Promise.resolve(this._module)
       : this._fetch()
@@ -88,22 +99,25 @@ class Loader {
               if (prom) prom.then(ready)
               else ready()
             }
-            if (!comp && this._engine._root) {
-              this._engine._root.forceUpdate()
-            }
           } else {
             instance = this.value
           }
         } else {
           instance = new Module(getter, config)
         }
-        if (comp instanceof Component) {
-          comp.setState(() => ({
-            [name || instance.constructor.module]: instance
-          }))
-        }
+        // Force update if user provided a component
+        if (comp instanceof Component) comp.forceUpdate()
         return instance
       })
+  }
+
+  loadToState(comp, name) {
+    return this.load().then(instance => {
+      comp.setState(() => ({
+        [name || instance.constructor.module]: instance
+      }))
+      return instance
+    })
   }
 
 }

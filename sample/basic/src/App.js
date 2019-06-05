@@ -13,7 +13,7 @@ class App extends Component {
     super(props)
     const engine = props.engine
     // Initialize engine and its modules and re-render once done.
-    engine.init(this, args => {
+    engine.init(args => {
       let store;
       if (args.rootReducer) {
         store = createStore(
@@ -30,17 +30,14 @@ class App extends Component {
   render() {
     const { engine } = this.props
     return (
-      // Make sure the engine is hot and ready before 
-      // attaching the its context.
-      !engine.isReady ? null :
-        <EngineProvider engine={engine}>
-          <div className="App">
-            <header className="App-header">
-              <h1>Welcome to Renginex</h1>
-            </header>
-            <Home />
-          </div>
-        </EngineProvider>
+      <EngineProvider engine={engine}>
+        <div className="App">
+          <header className="App-header">
+            <h1>Welcome to Renginex</h1>
+          </header>
+          <Home />
+        </div>
+      </EngineProvider>
     )
   }
 }

@@ -2,7 +2,7 @@ import React, { Component } from 'react'
 import { combineReducers, createStore } from 'redux'
 import { connect } from 'react-redux'
 import _set from 'lodash.set'
-import { _get, _isEmpty, _mapObject } from './lib/util'
+import { _get, _isEmpty } from './lib/util'
 import Storage from './lib/storage'
 import ModuleGetter from './getter'
 import ModuleSetter from './setter'
@@ -55,9 +55,7 @@ class Engine {
     this._imports = null
     // Holds the root reducer, init method can consume it 
     // for creating the store
-    this._reducers = null
-    // Root component
-    this._root = null
+    this._reducers = {}
     this.getter = new ModuleGetter(this)
     this.setter = new ModuleSetter(this)
     this._setOptions(options)
@@ -102,9 +100,7 @@ class Engine {
    * A setup function that should return all needed things
    * @returns {promise}
    */
-  init(root, setup) {
-    if (root instanceof Component) this._root = root
-    else if (typeof root === 'function') setup = root
+  init(setup) {
     const loadSyncModules = () => {
       let toLoad = []
       for (const key in this._modules) {
@@ -117,7 +113,7 @@ class Engine {
       return Promise.all(toLoad)
     }
     const runSetup = initState => {
-      let reducers = {}
+      let combinedReducer = null
       let screens = {}
       let modals = {}
       let extras = {}
@@ -125,19 +121,19 @@ class Engine {
         if (this._modules.hasOwnProperty(key)) {
           const mod = this._modules[key]._module
           if (mod) {
-            if (mod.reducers) reducers[key] = mod.reducers
+            if (mod.reducer) this._reducers[key] = mod.reducer
             if (mod.screens) Object.assign(screens, mod.screens)
             if (mod.modals) Object.assign(modals, mod.modals)
             if (mod.extra) extras[key] = mod.extra
           }
         }
       }
-      if (!_isEmpty(reducers))
-        this._reducers = combineReducers(reducers)
+      if (!_isEmpty(this._reducers))
+        combinedReducer = combineReducers(this._reducers)
       let setupResult
       if (setup) {
         setupResult = setup({
-          rootReducer: this._reducers,
+          rootReducer: combinedReducer,
           initialState: initState,
           navigationScreens: screens,
           navigationModals: modals,
@@ -145,8 +141,9 @@ class Engine {
         })
       }
       const processResult = result => {
+        console.log('App:initialState', initState)
         this._setStore(result.store || createStore(
-          this._reducers || (s => s),
+          combinedReducer || (s => s),
           initState || {}
         ))
       }
@@ -210,42 +207,29 @@ class Engine {
    * The initial state
    */
   _getInitialState() {
-    return new Promise((resolve, reject) => {
-      let state = {}
-      let { storage } = this._options
-      let hasPersist = false
-      for (const key in this._modules) {
-        if (!this._modules.hasOwnProperty(key)) continue
-        const mod = this._modules[key]._module
-        if (mod && mod.persist && storage) {
-          hasPersist = true
-          if (mod.persist === true) {
-            storage.getItem(prefixState + mod.module)
-              .then(value => value !== null && _set(
-                state, mod.module, JSON.parse(value)))
-              .then(resolve)
-              .catch(reject)
-          } else {
-            let promises = []
-            mod.persist.forEach(path => {
-              path = mod.module + '.' + path
-              promises.push(
-                storage.getItem(prefixState + path)
-                  .then(value => {
-                    try {
-                      _set(state, path, JSON.parse(value))
-                    } catch {
-                      // Nothing to do
-                    }
-                  })
-              )
-            })
-            Promise.all(promises).then(() => resolve(state)).catch(reject)
-          }
-        }
-      }
-      if (!hasPersist) resolve({})
-    })
+    let state = {}
+    let { storage } = this._options
+    if (storage) {
+      return storage.getAllKeys()
+        .then(keys => {
+          const toGet = []
+          keys.forEach(key => {
+            const path = key.split(':')[1]
+            toGet.push(
+              storage.getItem(key).then(value => {
+                try {
+                  _set(state, path, JSON.parse(value))
+                } catch (error) {
+                  // TODO: put something here
+                }
+              })
+            )
+          })
+          return Promise.all(toGet)
+        })
+        .then(() => state)
+    }
+    return Promise.resolve({})
   }
 
   /**
@@ -272,17 +256,20 @@ class Engine {
     for (const key in this._modules) {
       if (!this._modules.hasOwnProperty(key)) continue
       const mod = this._modules[key]._module
-      if (mod && mod.persist) {
-        if (mod.persist === true) {
-          // Persist whole module
-          this._persistState(mod.module)
-        } else {
-          // Should be array, persist by keys
-          mod.persist.forEach(path => {
-            this._persistState(mod.module + '.' + path)
-          })
-        }
-      }
+      if (mod && mod.persist)
+        this._persistModule(mod)
+    }
+  }
+
+  _persistModule(mod) {
+    if (mod.persist === true) {
+      // Persist whole module
+      this._persistState(mod.module)
+    } else {
+      // Should be array, persist by keys
+      mod.persist.forEach(path => {
+        this._persistState(mod.module + '.' + path)
+      })
     }
   }
 
@@ -351,10 +338,6 @@ function getLoaders(engine, moduleNames, isRequired) {
     engine.getter._getModules(moduleNames)
 }
 
-function getModules(loaders) {
-  return _mapObject(loaders, mod => mod.value)
-}
-
 function mapStateToProps(moduleNames, state) {
   return moduleNames.reduce((o, k) => {
     const val = state[k]
@@ -383,11 +366,9 @@ function createComponentWithModules(ChildComponent, moduleNames, isRequired) {
   return props => {
     return (
       React.createElement(EngineContext.Consumer, null, engine => {
-        const loaders = getLoaders(engine, moduleNames, isRequired)
         return React.createElement(ChildComponent, {
           engine: engine.getter,
-          loaders,
-          modules: getModules(loaders),
+          modules: getLoaders(engine, moduleNames, isRequired),
           ...props
         })
       })

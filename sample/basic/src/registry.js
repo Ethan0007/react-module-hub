@@ -1,6 +1,6 @@
 import dashboard from './modules/dashboard'
 import note from './modules/note'
-import user from './modules/user'
+// import user from './modules/user'
 
 /**
  * This is where you register all your modules
@@ -12,12 +12,12 @@ export default engine => {
   // Modules that synchronously loads on startup
   engine.addModule(dashboard)
   engine.addModule(note)
-  engine.addModule(user)
+  // engine.addModule(user)
 
   // ON-DEMAND ASYNC MODULES
   // Modules that asynchronousely loads on demand,
   // This will also enable code-splitting
-  // engine.addModule(() => import('./modules/user'), 'user')
+  engine.addModule(() => import('./modules/user'), 'user')
 
   // STARTUP ASYNC MODULES
   // Modules that asynchronousely loads on startup but

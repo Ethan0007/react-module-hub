@@ -1,6 +1,7 @@
 
 /**
- * This is a polyfill for asyncStorage
+ * This is a polyfill for asyncStorage that's 
+ * using localStorage
  */
 
 class Storage {
@@ -24,6 +25,11 @@ class Storage {
     let val = null
     if (this.available) val = localStorage.getItem(key)
     return Promise.resolve(val)
+  }
+
+  getAllKeys() {
+    return Promise.resolve(this.available ?
+      Object.keys(localStorage) : [])
   }
 
 }

@@ -4,8 +4,9 @@ function UserComponent(user, greet = "Hi") {
   return class extends Component {
     render() {
       const { user: state } = user._store.getState()
+      console.log('user:render:state', state);
       return (
-        <div>{`${greet} ${user.name} ${state.list[0].title}`}</div>
+        <div>{`${greet} ${user.name}`}</div>
       )
     }
   }
@@ -35,8 +36,8 @@ function notes(state = initialNotes, action) {
 export default class {
 
   static module = 'user'
-  // static persist = true
-  static reducers = notes
+  static persist = true
+  static reducer = notes
 
   name = 'Kevin'
 
@@ -44,7 +45,7 @@ export default class {
 
   constructor(engine) {
     this._store = engine.getStore()
-    console.log('user:contructor', this._store);
+    console.log('user:contructor');
   }
 
   setTitle(title) {
