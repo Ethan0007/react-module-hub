@@ -1,6 +1,6 @@
 import { Component } from 'react'
 import Empty from './components/Empty'
-import Content from './components/Content'
+import Loading from './components/Loading'
 import { _get } from './lib/util'
 import { combineReducers } from 'redux'
 
@@ -26,7 +26,7 @@ class Loader {
     // Render view component
     this.View = Empty
     // Component that shows Loading or View
-    this.Content = Content(this)
+    this.ViewWithLoading = Loading(this)
     this._engine = engine
     this._loader = loader
     if (engine._options.loading)
@@ -70,8 +70,6 @@ class Loader {
    * 
    * @param {component} comp
    * The component to mount the loader
-   * @param {string} name 
-   * Explicit key name of the loader
    * @returns {promise}
    * Passing the module instance
    */

@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+import React from 'react'
 import { combineReducers, createStore } from 'redux'
 import { connect } from 'react-redux'
 import _set from 'lodash.set'
@@ -141,7 +141,6 @@ class Engine {
         })
       }
       const processResult = result => {
-        console.log('App:initialState', initState)
         this._setStore(result.store || createStore(
           combinedReducer || (s => s),
           initState || {}
