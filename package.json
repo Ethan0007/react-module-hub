@@ -23,6 +23,7 @@
     "lodash.keyby": "^4.6.0",
     "lodash.set": "^4.3.2",
     "react": "^16.8.6",
+    "react-redux": "^7.0.3",
     "redux": "^4.0.1"
   },
   "files": [

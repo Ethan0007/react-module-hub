@@ -86,25 +86,22 @@ class ModuleGetter extends EventEmitter {
    * Loaders in object
    * @param {component} comp 
    * Component to update state
-   * @param {object} opt 
-   * Options: `silent` will not re-render
    * @returns {object}
    * All loaded modules
    */
-  loadAll(objLoaders, comp, opt = {}) {
+  loadAll(objLoaders, comp) {
     let toLoad = []
     for (const key in objLoaders) {
       if (objLoaders.hasOwnProperty(key)) {
         const loader = objLoaders[key]
-        toLoad.push(loader.load(null, null, { silent: true }))
+        toLoad.push(
+          loader.load(null, null)
+        )
       }
     }
     return Promise.all(toLoad).then(results => {
       const objResults = _keyBy(results, 'constructor.module')
-      if (!opt.silent) {
-        if (comp instanceof Component) comp.setState(() => objResults)
-        else if (this._engine._root) this._engine._root.forceUpdate()
-      }
+      if (comp instanceof Component) comp.setState(() => objResults)
       return objResults
     })
   }

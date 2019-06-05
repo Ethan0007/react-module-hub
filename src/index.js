@@ -109,7 +109,7 @@ class Engine {
         if (this._modules.hasOwnProperty(key)) {
           const mod = this._modules[key]
           if (mod instanceof Loader && mod.isSync)
-            toLoad.push(mod.load(null, null, { silent: true }))
+            toLoad.push(mod.load())
         }
       }
       return Promise.all(toLoad)

@@ -67,7 +67,7 @@ class Loader {
    * @returns {promise}
    * Passing the module instance
    */
-  load(comp, name, opt = {}) {
+  load(comp, name) {
     const prom = this._fetched
       ? Promise.resolve(this._module)
       : this._fetch()
@@ -75,9 +75,10 @@ class Loader {
       .then(Module => {
         const getter = this._engine.getter
         const config = _get(this._engine._config.modules, Module.module)
+        let instance
         if (Module.isSingleton) {
           if (!this.value) {
-            const instance = new Module(getter, config)
+            instance = new Module(getter, config)
             this.value = instance
             this.$ = instance
             this.loaded = true
@@ -90,19 +91,18 @@ class Loader {
               if (prom) prom.then(ready)
               else ready()
             }
+            if (!comp && this._engine._root)
+              this._engine._root.forceUpdate()
+          } else {
+            instance = this.value
           }
-          return this.value
+        } else {
+          instance = new Module(getter, config)
         }
-        return new Module(getter, config)
-      })
-      .then(instance => {
-        if (!opt.silent) {
-          if (comp instanceof Component)
-            comp.setState(() => ({
-              [name || instance.constructor.module]: instance
-            }))
-          else if (this._engine._root)
-            this._engine._root.forceUpdate()
+        if (comp instanceof Component) {
+          comp.setState(() => ({
+            [name || instance.constructor.module]: instance
+          }))
         }
         return instance
       })

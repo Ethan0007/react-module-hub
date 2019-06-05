@@ -7,8 +7,9 @@ class Home extends Component {
     super(props)
     props.engine.loadAll(props.modules, this)
     setTimeout(() => {
-      console.log(this.state);
-      this.state.user.setTitle('New Title')
+      props.engine.loadAll(props.modules, this)
+      //   console.log(this.state);
+      //   this.state.user.setTitle('New Title')
     }, 5000)
   }
   render() {
