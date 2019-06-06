@@ -1,6 +1,6 @@
 {
   "name": "rengine",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A micro framework for building modular react project",
   "main": "src/index.js",
   "scripts": {
