@@ -56,10 +56,10 @@ class Engine {
     // Holds the root reducer, init method can consume it 
     // for creating the store
     this._reducers = {}
-    this.getter = new ModuleGetter(this)
-    this.setter = new ModuleSetter(this)
     this._setOptions(options)
     this._setConfig(config)
+    this.getter = new ModuleGetter(this)
+    this.setter = new ModuleSetter(this)
   }
 
   /**
@@ -322,20 +322,6 @@ class Engine {
 
 }
 
-/**
- * To get a required or non-required module.
- * 
- * @param {engine} engine 
- * @param {array} moduleNames 
- * @param {boolean} isRequired 
- * @returns {object}
- */
-function getLoaders(engine, moduleNames, isRequired) {
-  return isRequired ?
-    engine.getter._getRequiredModules(moduleNames) :
-    engine.getter._getModules(moduleNames)
-}
-
 function mapStateToProps(moduleNames, state) {
   return moduleNames.reduce((o, k) => {
     const val = state[k]
@@ -360,13 +346,13 @@ function mapStateToProps(moduleNames, state) {
  * The HOC component
  */
 
-function createComponentWithModules(ChildComponent, moduleNames, isRequired) {
+function createComponentWithModules(ChildComponent, moduleNames) {
   return props => {
     return (
       React.createElement(EngineContext.Consumer, null, engine => {
         return React.createElement(ChildComponent, {
           engine: engine.getter,
-          modules: getLoaders(engine, moduleNames, isRequired),
+          modules: engine.getter._getModules(moduleNames),
           ...props
         })
       })
@@ -383,18 +369,8 @@ export function withModules(ChildComponent, ...moduleNames) {
   )
 }
 
-export function withRequiredModules(ChildComponent, ...moduleNames) {
-  return connect(state => ({ state: mapStateToProps(moduleNames, state) }))(
-    createComponentWithModules(ChildComponent, moduleNames, true)
-  )
-}
-
 export function withOnlyModules(ChildComponent, ...moduleNames) {
   return createComponentWithModules(ChildComponent, moduleNames)
-}
-
-export function withOnlyRequiredModules(ChildComponent, ...moduleNames) {
-  return createComponentWithModules(ChildComponent, moduleNames, true)
 }
 
 /**

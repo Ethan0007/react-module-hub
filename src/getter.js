@@ -1,6 +1,7 @@
 import { Component } from 'react'
 import EventEmitter from 'events'
 import _keyBy from 'lodash.keyby'
+import Loader from './loader'
 
 /**
  * Responsible to providing a module to another module.
@@ -17,6 +18,7 @@ class ModuleGetter extends EventEmitter {
   constructor(engine) {
     super()
     this._engine = engine
+    this._emptyLoader = new Loader(this._engine)
   }
 
   /**
@@ -57,22 +59,7 @@ class ModuleGetter extends EventEmitter {
    */
   getModule(name) {
     let module = this._engine._modules[name.toLowerCase()]
-    if (!module) return null
-    return module
-  }
-
-  /**
-   * Returns an instance of the module. Same with
-   * `getModule` method, but throws `error` if not found.
-   * 
-   * @param {string} name 
-   * The name of the module to get
-   * @returns {module|loader}
-   * The module instance
-   */
-  getRequiredModule(name) {
-    let module = this._engine._modules[name.toLowerCase()]
-    if (!module) throw new Error(`Module "${name}" not found`)
+    if (!module) return this._emptyLoader
     return module
   }
 
@@ -113,20 +100,6 @@ class ModuleGetter extends EventEmitter {
   _getModules(names) {
     return names.reduce((o, k) => {
       o[k] = this.getModule(k)
-      return o
-    }, {})
-  }
-
-  /**
-   * Returns multiple modules at onces.
-   * Throws `error` if one is not found.
-   * 
-   * @param {array} names 
-   * Array of module names to get
-   */
-  _getRequiredModules(names) {
-    return names.reduce((o, k) => {
-      o[k] = this.getRequiredModule(k)
       return o
     }, {})
   }

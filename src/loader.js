@@ -40,7 +40,12 @@ class Loader {
    * @returns {promise}
    * Passing the module constructor
    */
-  _fetch() {
+  _fetch(required) {
+    if (!this._loader) {
+      if (required)
+        throw new Error('Loader is not referenced to a module')
+      return Promise.resolve(null)
+    }
     // Loading the module
     return this._loader()
       .then(module => {
@@ -65,6 +70,36 @@ class Loader {
       })
   }
 
+  _createInstance(Module, comp) {
+    const getter = this._engine.getter
+    const config = _get(this._engine._config.modules, Module.module)
+    let instance
+    if (Module.isSingleton) {
+      if (!this.value) {
+        instance = new Module(getter, config)
+        this.value = instance
+        this.$ = instance
+        this.loaded = true
+        // Attach main content component
+        if (instance.view) this.View = instance.view()
+        // Trigger module's `start` and `ready` lifecycle
+        if (!Module.isSync) {
+          const prom = instance.start && instance.start(getter)
+          const ready = () => instance.ready && instance.ready(getter)
+          if (prom) prom.then(ready)
+          else ready()
+        }
+      } else {
+        instance = this.value
+      }
+    } else {
+      instance = new Module(getter, config)
+    }
+    // Force update if user provided a component
+    if (comp instanceof Component) comp.forceUpdate()
+    return instance
+  }
+
   /**
    * Load and creates an instance for async module.
    * 
@@ -77,40 +112,30 @@ class Loader {
     const prom = this._fetched
       ? Promise.resolve(this._module)
       : this._fetch()
-    return prom
-      .then(Module => {
-        const getter = this._engine.getter
-        const config = _get(this._engine._config.modules, Module.module)
-        let instance
-        if (Module.isSingleton) {
-          if (!this.value) {
-            instance = new Module(getter, config)
-            this.value = instance
-            this.$ = instance
-            this.loaded = true
-            // Attach main content component
-            if (instance.view) this.View = instance.view()
-            // Trigger module's `start` and `ready` lifecycle
-            if (!Module.isSync) {
-              const prom = instance.start && instance.start(getter)
-              const ready = () => instance.ready && instance.ready(getter)
-              if (prom) prom.then(ready)
-              else ready()
-            }
-          } else {
-            instance = this.value
-          }
-        } else {
-          instance = new Module(getter, config)
-        }
-        // Force update if user provided a component
-        if (comp instanceof Component) comp.forceUpdate()
-        return instance
-      })
+    return prom.then(Module => {
+      if (!Module) return null
+      return this._createInstance(Module, comp)
+    })
+  }
+
+  loadRequired(comp) {
+    const prom = this._fetched
+      ? Promise.resolve(this._module)
+      : this._fetch(true)
+    return prom.then(Module => this._createInstance(Module, comp))
   }
 
   loadToState(comp, name) {
     return this.load().then(instance => {
+      comp.setState(() => ({
+        [name || instance.constructor.module]: instance
+      }))
+      return instance
+    })
+  }
+
+  loadRequiredToState(comp, name) {
+    return this.loadRequired().then(instance => {
       comp.setState(() => ({
         [name || instance.constructor.module]: instance
       }))
