@@ -101,7 +101,7 @@ class Engine {
    * @returns {promise}
    */
   init(setup) {
-    const loadSyncModules = () => {
+    const loadModules = () => {
       let toLoad = []
       for (const key in this._modules) {
         if (this._modules.hasOwnProperty(key)) {
@@ -140,7 +140,7 @@ class Engine {
           extras: extras
         })
       }
-      const processResult = result => {
+      const processResult = (result = {}) => {
         this._setStore(result.store || createStore(
           combinedReducer || (s => s),
           initState || {}
@@ -150,7 +150,7 @@ class Engine {
         return setupResult.then(processResult)
       processResult(setupResult)
     }
-    const loadImports = () => {
+    const addImports = () => {
       return Promise.all(this._imports)
         .then(results => {
           results.forEach(module => {
@@ -164,15 +164,13 @@ class Engine {
     return Promise.resolve()
       .then(getInitialState)
       .then(runSetup)
-      .then(loadSyncModules)
-      .then(loadImports)
+      .then(addImports)
+      .then(loadModules)
       .then(triggerStart)
       .then(loadStartups)
-      .finally(() => {
+      .then(() => {
         this._imports.length = 0
         this._imports = null
-      })
-      .then(() => {
         this.isReady = true
         this._trigger('ready')
       })

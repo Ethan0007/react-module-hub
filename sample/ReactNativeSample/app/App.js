@@ -8,7 +8,7 @@
 
 import React, { Component } from 'react'
 import { Platform, StyleSheet, Text, View } from 'react-native'
-import { EngineContext } from './engine'
+import { EngineProvider } from './engine'
 
 const instructions = Platform.select({
   ios: 'Press Cmd+R to reload,\n' + 'Cmd+D or shake for dev menu',
@@ -19,41 +19,38 @@ const instructions = Platform.select({
 
 export default engine => {
   return class App extends Component {
-    state = { ready: false }
     constructor(props) {
       super(props)
-      engine
-        .init(this)
-        .then(() => this.setState(() => ({ ready: true })))
+      engine.init()
+        .then(() => this.forceUpdate())
     }
     render() {
       const moduleKeys = Object.keys(engine._modules)
       return (
-        !this.state.ready ? null :
-          <EngineContext.Provider value={engine}>
-            <View style={styles.container}>
-              <Text style={styles.welcome}>Welcome to Rengine!</Text>
-              <Text style={styles.instructions}>To get started, edit App.js</Text>
-              <Text style={styles.instructions}>{instructions}</Text>
-              <Text style={styles.instructions}></Text>
-              <Text style={styles.instructions}>
-                There are {moduleKeys.length} added modules,
+        <EngineProvider engine={engine}>
+          <View style={styles.container}>
+            <Text style={styles.welcome}>Welcome to Rengine!</Text>
+            <Text style={styles.instructions}>To get started, edit App.js</Text>
+            <Text style={styles.instructions}>{instructions}</Text>
+            <Text style={styles.instructions}></Text>
+            <Text style={styles.instructions}>
+              There are {moduleKeys.length} added modules,
                 {'\n\n'}
-                {
-                  moduleKeys.map(key => (
-                    <Text key={key}>
-                      {engine._modules[key]._loader.module}{'  :  '}
-                      {engine._modules[key].loaded ? 'Loaded' : 'Not Loaded'}{'\n'}
-                    </Text>
-                  ))
-                }
-                {'\n\n'}
-                Check out the "registry" file to see how
+              {
+                moduleKeys.map(key => (
+                  <Text key={key}>
+                    {engine._modules[key]._loader.module}{'  :  '}
+                    {engine._modules[key].loaded ? 'Loaded' : 'Not Loaded'}{'\n'}
+                  </Text>
+                ))
+              }
+              {'\n\n'}
+              Check out the "registry" file to see how
                 {'\n'}
-                modules are added and loaded
+              modules are added and loaded
               </Text>
-            </View>
-          </EngineContext.Provider>
+          </View>
+        </EngineProvider>
       )
     }
   }
