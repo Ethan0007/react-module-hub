@@ -2,8 +2,9 @@
   "name": "rengine",
   "version": "0.1.4",
   "description": "A micro framework for building modular react project",
-  "main": "src/index.js",
+  "main": "lib/index.js",
   "scripts": {
+    "babel": "babel src --out-dir lib",
     "babel-basic": "babel src --watch --out-dir sample/basic/src/engine",
     "babel-native": "babel src --watch --out-dir sample/ReactNativeSample/app/engine",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -26,6 +27,7 @@
     "redux": "^4.0.1"
   },
   "files": [
+    "lib",
     "src"
   ],
   "devDependencies": {
