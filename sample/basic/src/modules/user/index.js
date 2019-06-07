@@ -6,7 +6,10 @@ function UserComponent(user, greet = "Hi") {
       const { user: state } = user._store.getState()
       console.log('user:render:state', state);
       return (
-        <div>{`${greet} ${user.name}`}</div>
+        <div>
+          {`${greet} ${user.name}`}
+          {this.props.children}
+        </div>
       )
     }
   }

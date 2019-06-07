@@ -1,9 +1,11 @@
 import React, { Component } from 'react'
-import { withModules } from './engine'
+import { withRequiredModules } from './engine'
 
 class Home extends Component {
   constructor(props) {
     super(props)
+    console.log(props);
+    props.engine.getRequiredModule('settings')
     this.user = props.modules.user
     this.user.load(this)
     console.log('Home:contructor')
@@ -19,10 +21,12 @@ class Home extends Component {
       <div id="home">
         <h2>Home</h2>
         <h3>{user.loaded && this.props.state.user.list[0].title}</h3>
-        <this.user.View />
+        <this.user.View>
+          <div>Nice!</div>
+        </this.user.View>
       </div>
     )
   }
 }
 
-export default withModules(Home, 'user', 'note', 'settings')
+export default withRequiredModules(Home, 'user', 'note', 'settings')

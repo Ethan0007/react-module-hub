@@ -101,22 +101,13 @@ class Engine {
    * @returns {promise}
    */
   init(setup) {
-    const loadModules = () => {
-      let toLoad = []
-      for (const key in this._modules) {
-        if (this._modules.hasOwnProperty(key)) {
-          const mod = this._modules[key]
-          if (mod instanceof Loader && mod._loader.isSync)
-            toLoad.push(mod.load())
-        }
-      }
-      return Promise.all(toLoad)
-    }
+    let args = null
     const runSetup = initState => {
       let combinedReducer = null
       let screens = {}
       let modals = {}
       let extras = {}
+      // Combine things from all modules
       for (const key in this._modules) {
         if (this._modules.hasOwnProperty(key)) {
           const mod = this._modules[key]._module
@@ -130,16 +121,18 @@ class Engine {
       }
       if (!_isEmpty(this._reducers))
         combinedReducer = combineReducers(this._reducers)
+      // Create setup data
       let setupResult
-      if (setup) {
-        setupResult = setup({
-          rootReducer: combinedReducer,
-          initialState: initState,
-          navigationScreens: screens,
-          navigationModals: modals,
-          extras: extras
-        })
+      args = {
+        rootReducer: combinedReducer,
+        initialState: initState,
+        navigationScreens: screens,
+        navigationModals: modals,
+        extras: extras
       }
+      // Run setup
+      if (setup) setupResult = setup(args)
+      // Process result of setup
       const processResult = (result = {}) => {
         this._setStore(result.store || createStore(
           combinedReducer || (s => s),
@@ -158,6 +151,17 @@ class Engine {
           })
         })
     }
+    const loadModules = () => {
+      let toLoad = []
+      for (const key in this._modules) {
+        if (this._modules.hasOwnProperty(key)) {
+          const mod = this._modules[key]
+          if (mod instanceof Loader && mod._loader.isSync)
+            toLoad.push(mod.load())
+        }
+      }
+      return Promise.all(toLoad)
+    }
     const getInitialState = () => this._getInitialState()
     const triggerStart = () => this._trigger('start')
     const loadStartups = startups => Promise.all(startups)
@@ -173,6 +177,7 @@ class Engine {
         this._imports = null
         this.isReady = true
         this._trigger('ready')
+        return args
       })
   }
 
@@ -323,11 +328,19 @@ class Engine {
 }
 
 function mapStateToProps(moduleNames, state) {
-  return moduleNames.reduce((o, k) => {
-    const val = state[k]
-    if (val) o[k] = val
-    return o
+  return moduleNames.reduce((result, name) => {
+    const val = state[name]
+    if (val) result[name] = val
+    return result
   }, {})
+}
+
+function checkModules(engine, moduleNames) {
+  let missings = []
+  moduleNames.forEach(name => {
+    if (!engine._modules[name]) missings.push(name)
+  })
+  return missings
 }
 
 /**
@@ -341,15 +354,20 @@ function mapStateToProps(moduleNames, state) {
  * Child component for higher component
  * @param {array} moduleNames 
  * Array of string module names
- * @param {boolean} isRequired 
  * @returns {component}
  * The HOC component
  */
 
-function createComponentWithModules(ChildComponent, moduleNames) {
+function createComponentWithModules(ChildComponent, moduleNames, isRequired) {
   return props => {
     return (
       React.createElement(EngineContext.Consumer, null, engine => {
+        // Check for required modules
+        if (isRequired) {
+          const missing = checkModules(engine, moduleNames)
+          if (missing.length)
+            throw new Error(`Missing required modules: ${missing.join(', ')}`)
+        }
         return React.createElement(ChildComponent, {
           engine: engine.getter,
           modules: engine.getter._getModules(moduleNames),
@@ -369,8 +387,18 @@ export function withModules(ChildComponent, ...moduleNames) {
   )
 }
 
+export function withRequiredModules(ChildComponent, ...moduleNames) {
+  return connect(state => ({ state: mapStateToProps(moduleNames, state) }))(
+    createComponentWithModules(ChildComponent, moduleNames, true)
+  )
+}
+
 export function withOnlyModules(ChildComponent, ...moduleNames) {
   return createComponentWithModules(ChildComponent, moduleNames)
+}
+
+export function withOnlyRequiredModules(ChildComponent, ...moduleNames) {
+  return createComponentWithModules(ChildComponent, moduleNames, true)
 }
 
 /**

@@ -63,6 +63,13 @@ class ModuleGetter extends EventEmitter {
     return module
   }
 
+  getRequiredModule(name) {
+    let module = this._engine._modules[name.toLowerCase()]
+    if (!module)
+      throw new Error(`Missing required module: ${name}`)
+    return module
+  }
+
   /**
    * Loads all loaders in object and re-render when component is passed.
    * 
@@ -85,8 +92,15 @@ class ModuleGetter extends EventEmitter {
     }
     return Promise.all(toLoad).then(results => {
       const objResults = _keyBy(results, 'constructor.module')
-      if (comp instanceof Component) comp.setState(() => objResults)
+      if (comp instanceof Component) comp.forceUpdate()
       return objResults
+    })
+  }
+
+  loadAllToState(objLoaders, comp) {
+    this.loadAll(objLoaders).then(results => {
+      if (comp instanceof Component) comp.setState(() => results)
+      return results
     })
   }
 
@@ -98,9 +112,9 @@ class ModuleGetter extends EventEmitter {
    * Array of module names to get
    */
   _getModules(names) {
-    return names.reduce((o, k) => {
-      o[k] = this.getModule(k)
-      return o
+    return names.reduce((result, name) => {
+      result[name] = this.getModule(name)
+      return result
     }, {})
   }
 
